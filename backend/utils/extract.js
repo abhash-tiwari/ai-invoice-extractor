@@ -43,6 +43,7 @@ async function extractInvoiceData(filePath) {
     seller: fields['supplier_name'] || '',
     total: fields['total_amount'] || '',
     tax: fields['tax_amount'] || '',
+    incoterm: fields['incoterm'] || '',
     items: fields.items || [],
   };
 }
