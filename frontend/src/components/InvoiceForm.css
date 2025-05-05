@@ -1,0 +1,678 @@
+.invoice-form {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 30px;
+  background: #fff;
+  border-radius: 12px;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.form-section {
+  margin-bottom: 25px;
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.form-group {
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.form-group label {
+  width: 180px;
+  font-weight: 600;
+  color: #495057;
+  font-size: 16px;
+}
+
+.form-group input {
+  flex: 1;
+  padding: 12px 15px;
+  border: 1px solid #ced4da;
+  border-radius: 6px;
+  font-size: 16px;
+  min-height: 45px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: #80bdff;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.form-group textarea {
+  flex: 1;
+  padding: 12px 15px;
+  border: 1px solid #ced4da;
+  border-radius: 6px;
+  font-size: 16px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  resize: vertical;
+  min-height: 100px;
+  font-family: inherit;
+}
+
+.form-group textarea:focus {
+  outline: none;
+  border-color: #80bdff;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.form-group input[type="date"] {
+  flex: 1;
+  padding: 12px 15px;
+  border: 1px solid #ced4da;
+  border-radius: 6px;
+  font-size: 16px;
+  min-height: 45px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  font-family: inherit;
+}
+
+.form-group input[type="date"]:focus {
+  outline: none;
+  border-color: #80bdff;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.items-section {
+  margin-top: 25px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 10px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 20px;
+}
+
+.item-row {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+  margin-bottom: 20px;
+  padding: 15px;
+  background: #fff;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+  min-width: 1200px;
+}
+
+.item-row .form-group {
+  flex: 1;
+  min-width: 200px;
+  margin-bottom: 0;
+}
+
+.item-row .form-group label {
+  display: block;
+  margin-bottom: 10px;
+  font-weight: 600;
+  color: #495057;
+  font-size: 16px;
+}
+
+.item-row .form-group input {
+  width: 100%;
+  padding: 12px 15px;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  font-size: 16px;
+  min-height: 45px;
+}
+
+.item-row button {
+  align-self: center;
+  padding: 8px 16px;
+  background: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  transition: background-color 0.2s;
+  margin-left: 10px;
+}
+
+.item-row button:hover {
+  background: #c82333;
+}
+
+/* Style for string items (simple format) */
+.item-row.simple-format {
+  min-width: auto;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.item-row.simple-format .form-group {
+  flex: 1;
+  min-width: 300px;
+}
+
+.item-row.simple-format button {
+  margin-left: auto;
+}
+
+/* Style for detailed items (object format) */
+.item-row.detailed-format {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+  flex-wrap: nowrap;
+}
+
+.item-row.detailed-format .form-group {
+  flex: 1;
+  min-width: 200px;
+}
+
+/* Add Item button styling */
+.items-section > button {
+  margin-top: 20px;
+  padding: 10px 20px;
+  background: #28a745;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.items-section > button:hover {
+  background: #218838;
+  transform: translateY(-1px);
+}
+
+/* Responsive adjustments for items */
+@media (max-width: 768px) {
+  .item-row {
+    flex-direction: column;
+    gap: 15px;
+    min-width: auto;
+  }
+
+  .item-row .form-group {
+    width: 100%;
+  }
+
+  .item-row button {
+    width: 100%;
+    margin-top: 10px;
+    margin-left: 0;
+  }
+
+  .form-group textarea {
+    width: 100%;
+    min-height: 100px;
+  }
+
+  .form-group input[type="date"] {
+    width: 100%;
+  }
+}
+
+button {
+  padding: 12px 20px;
+  background: #007bff;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  margin-top: 15px;
+  transition: background-color 0.2s, transform 0.1s;
+}
+
+button:hover {
+  background: #0056b3;
+  transform: translateY(-1px);
+}
+
+button:active {
+  transform: translateY(0);
+}
+
+.save-button {
+  background: #28a745;
+  width: 100%;
+  padding: 14px;
+  font-size: 16px;
+  margin-top: 30px;
+  box-shadow: 0 2px 4px rgba(40, 167, 69, 0.2);
+}
+
+.save-button:hover {
+  background: #218838;
+}
+
+h2, h3 {
+  color: #212529;
+  margin-bottom: 25px;
+  font-weight: 600;
+}
+
+h2 {
+  font-size: 24px;
+  border-bottom: 2px solid #e9ecef;
+  padding-bottom: 10px;
+}
+
+h3 {
+  font-size: 20px;
+  margin-top: 30px;
+  color: #495057;
+}
+
+/* Input number styling */
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Add some spacing between sections */
+.form-section + .form-section {
+  margin-top: 30px;
+}
+
+/* Add hover effect to form sections */
+.form-section:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  transition: box-shadow 0.2s;
+}
+
+/* Custom scrollbar styling */
+.items-section::-webkit-scrollbar {
+  height: 8px;
+}
+
+.items-section::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.items-section::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+.items-section::-webkit-scrollbar-thumb:hover {
+  background: #555;
+} 
+
+
+
+/* // new styles */
+
+.invoice-form {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 30px;
+  background: #fff;
+  border-radius: 12px;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.form-section {
+  margin-bottom: 25px;
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.form-group {
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.form-group label {
+  width: 180px;
+  font-weight: 600;
+  color: #495057;
+  font-size: 16px;
+}
+
+.form-group input {
+  flex: 1;
+  padding: 12px 15px;
+  border: 1px solid #ced4da;
+  border-radius: 6px;
+  font-size: 16px;
+  min-height: 45px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: #80bdff;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.form-group textarea {
+  flex: 1;
+  padding: 12px 15px;
+  border: 1px solid #ced4da;
+  border-radius: 6px;
+  font-size: 16px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  resize: vertical;
+  min-height: 100px;
+  font-family: inherit;
+}
+
+.form-group textarea:focus {
+  outline: none;
+  border-color: #80bdff;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.form-group input[type="date"] {
+  flex: 1;
+  padding: 12px 15px;
+  border: 1px solid #ced4da;
+  border-radius: 6px;
+  font-size: 16px;
+  min-height: 45px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  font-family: inherit;
+}
+
+.form-group input[type="date"]:focus {
+  outline: none;
+  border-color: #80bdff;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.items-section {
+  margin-top: 25px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 20px;
+  border: 1px solid #e9ecef;
+}
+
+/* Improved styling for item rows */
+.item-row {
+  display: flex;
+  gap: 15px;
+  align-items: flex-start;
+  margin-bottom: 20px;
+  padding: 15px;
+  background: #fff;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+  transition: box-shadow 0.3s ease;
+}
+
+.item-row:hover {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Improved styles for inputs within item rows */
+.item-row .form-group {
+  flex: 1;
+  margin-bottom: 0;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.item-row .form-group label {
+  display: block;
+  width: 100%;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: #495057;
+  font-size: 14px;
+}
+
+.item-row .form-group input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  font-size: 14px;
+  min-height: 40px;
+  background-color: #ffffff;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.item-row .form-group input:focus {
+  border-color: #80bdff;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25), inset 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+/* Added visual cues for numeric inputs */
+.item-row .form-group input[type="number"] {
+  text-align: right;
+  font-family: monospace;
+  letter-spacing: 0.5px;
+  background-image: linear-gradient(to bottom, #ffffff, #f9f9f9);
+}
+
+/* Improved remove button */
+.item-row button {
+  align-self: flex-end;
+  margin-top: 25px;
+  padding: 8px 16px;
+  background: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  transition: background-color 0.2s;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.item-row button:hover {
+  background: #c82333;
+  transform: translateY(-1px);
+}
+
+/* Style for string items (simple format) */
+.item-row.simple-format {
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.item-row.simple-format .form-group {
+  flex: 1;
+  min-width: 300px;
+}
+
+.item-row.simple-format button {
+  margin-left: auto;
+}
+
+/* Style for detailed items (object format) */
+.item-row.detailed-format {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 15px;
+  position: relative;
+  padding-bottom: 45px;
+}
+
+.item-row.detailed-format .form-group {
+  min-width: unset;
+}
+
+.item-row.detailed-format button {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+}
+
+/* Add Item button styling */
+.items-section > button {
+  margin-top: 20px;
+  padding: 10px 20px;
+  background: #28a745;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.2s;
+  box-shadow: 0 2px 4px rgba(40, 167, 69, 0.2);
+}
+
+.items-section > button:hover {
+  background: #218838;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px rgba(40, 167, 69, 0.25);
+}
+
+/* Additional styling improvements */
+.item-row .form-group:nth-child(1) { /* Item Reference */
+  /* border-left: 3px solid #007bff; */
+  padding-left: 10px;
+}
+
+.item-row .form-group:nth-child(2) { /* Description */
+  /* border-left: 3px solid #28a745; */
+  padding-left: 10px;
+}
+
+.item-row .form-group:nth-child(3) { /* Quantity */
+  /* border-left: 3px solid #fd7e14; */
+  padding-left: 10px;
+}
+
+.item-row .form-group:nth-child(4) { /* Price Per Unit */
+  /* border-left: 3px solid #6f42c1; */
+  padding-left: 10px;
+}
+
+.item-row .form-group:nth-child(5) { /* Total Price */
+  padding-left: 10px;
+}
+
+/* Responsive adjustments for items */
+@media (max-width: 768px) {
+  .item-row.detailed-format {
+    grid-template-columns: 1fr;
+    padding-bottom: 60px;
+  }
+
+  .item-row .form-group {
+    width: 100%;
+  }
+
+  .item-row button {
+    width: auto;
+    margin-top: 10px;
+  }
+}
+
+button {
+  padding: 12px 20px;
+  background: #007bff;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  margin-top: 15px;
+  transition: background-color 0.2s, transform 0.1s;
+}
+
+button:hover {
+  background: #0056b3;
+  transform: translateY(-1px);
+}
+
+button:active {
+  transform: translateY(0);
+}
+
+.save-button {
+  background: #28a745;
+  width: 100%;
+  padding: 14px;
+  font-size: 16px;
+  margin-top: 30px;
+  box-shadow: 0 2px 4px rgba(40, 167, 69, 0.2);
+}
+
+.save-button:hover {
+  background: #218838;
+}
+
+h2, h3 {
+  color: #212529;
+  margin-bottom: 25px;
+  font-weight: 600;
+}
+
+h2 {
+  font-size: 24px;
+  border-bottom: 2px solid #e9ecef;
+  padding-bottom: 10px;
+}
+
+h3 {
+  font-size: 20px;
+  margin-top: 30px;
+  color: #495057;
+}
+
+/* Input number styling */
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Add some spacing between sections */
+.form-section + .form-section {
+  margin-top: 30px;
+}
+
+/* Add hover effect to form sections */
+.form-section:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  transition: box-shadow 0.2s;
+}
+
+/* Custom scrollbar styling */
+.items-section::-webkit-scrollbar {
+  height: 8px;
+}
+
+.items-section::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.items-section::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+.items-section::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
