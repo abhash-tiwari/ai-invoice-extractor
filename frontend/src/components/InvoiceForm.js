@@ -5,21 +5,13 @@ const InvoiceForm = ({ invoiceData, onSave }) => {
   const formatObjectString = (str) => {
     if (!str) return '';
     try {
-      // Handle case where string is already in readable format
+      // If it's already a string and not JSON, return as is
       if (typeof str === 'string' && !str.includes('{') && !str.includes('}')) {
         return str;
       }
 
-      // Remove escaped quotes if present
-      let cleanStr = str.replace(/\\"/g, '"');
-      
-      // Handle case where it's a simple string with quotes
-      if (cleanStr.startsWith('"') && cleanStr.endsWith('"')) {
-        return cleanStr.slice(1, -1);
-      }
-
       // Try to parse as JSON
-      const obj = JSON.parse(cleanStr);
+      const obj = JSON.parse(str);
       
       // If it's a string, return it directly
       if (typeof obj === 'string') {
@@ -80,9 +72,9 @@ const InvoiceForm = ({ invoiceData, onSave }) => {
         return text;
       }
 
-      // If it's a simple string, wrap it in quotes
+      // If it's a simple string, return it as is
       if (!text.includes('\n')) {
-        return JSON.stringify(text);
+        return text;
       }
 
       // Parse the formatted text back to an object
@@ -96,8 +88,8 @@ const InvoiceForm = ({ invoiceData, onSave }) => {
       });
       return JSON.stringify(obj);
     } catch (e) {
-      // If parsing fails, return the text as a simple string
-      return JSON.stringify(text);
+      // If parsing fails, return the text as is
+      return text;
     }
   };
 
@@ -121,15 +113,28 @@ const InvoiceForm = ({ invoiceData, onSave }) => {
     itemsPurchased: [],
     subtotal: '',
     taxes: '',
-    totalAmount: ''
+    totalAmount: '',
+    currency: ''
   });
+
+  // Helper function to format price with currency
+  const formatPrice = (value) => {
+    if (!value) return '';
+    return `${value} ${formData.currency || ''}`;
+  };
+
+  // Helper function to extract numeric value from price string
+  const extractNumericValue = (priceString) => {
+    if (!priceString) return '';
+    return priceString.replace(/[^0-9.]/g, '');
+  };
 
   const handleChange = (e, field) => {
     const value = e.target.value;
     setFormData(prev => ({
       ...prev,
       [field]: field === 'seller' || field === 'buyer' || field === 'consignee'
-        ? convertToJsonString(value)
+        ? value  // Store the raw value instead of converting to JSON string
         : value
     }));
   };
@@ -156,7 +161,8 @@ const InvoiceForm = ({ invoiceData, onSave }) => {
           description: '',
           quantity: '',
           pricePerUnit: '',
-          totalPrice: ''
+          totalPrice: '',
+          quantityUnit: ''
         }
       ]
     }));
@@ -171,6 +177,12 @@ const InvoiceForm = ({ invoiceData, onSave }) => {
 
   // Helper function to check if an item is a string
   const isStringItem = (item) => typeof item === 'string';
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    const [index, field] = name.split('.');
+    handleItemChange(index, field, value);
+  };
 
   return (
     <div className="invoice-form">
@@ -203,7 +215,7 @@ const InvoiceForm = ({ invoiceData, onSave }) => {
         <div className="form-group">
           <label>Seller:</label>
           <textarea
-            value={formatObjectString(formData.seller)}
+            value={formData.seller || ''}
             onChange={(e) => handleChange(e, 'seller')}
             rows="4"
           />
@@ -211,7 +223,7 @@ const InvoiceForm = ({ invoiceData, onSave }) => {
         <div className="form-group">
           <label>Buyer:</label>
           <textarea
-            value={formatObjectString(formData.buyer)}
+            value={formData.buyer || ''}
             onChange={(e) => handleChange(e, 'buyer')}
             rows="4"
           />
@@ -219,7 +231,7 @@ const InvoiceForm = ({ invoiceData, onSave }) => {
         <div className="form-group">
           <label>Consignee:</label>
           <textarea
-            value={formatObjectString(formData.consignee)}
+            value={formData.consignee || ''}
             onChange={(e) => handleChange(e, 'consignee')}
             rows="4"
           />
@@ -306,26 +318,48 @@ const InvoiceForm = ({ invoiceData, onSave }) => {
         </div>
         <div className="form-group">
           <label>Subtotal:</label>
-          <input
-            type="number"
-            value={formData.subtotal}
-            onChange={(e) => handleChange(e, 'subtotal')}
-          />
+          <div className="price-input-container">
+            <input
+              type="text"
+              value={formData.subtotal}
+              onChange={(e) => handleChange(e, 'subtotal')}
+            />
+            <span className="currency-display">{formData.currency}</span>
+          </div>
         </div>
         <div className="form-group">
           <label>Taxes:</label>
-          <input
-            type="number"
-            value={formData.taxes}
-            onChange={(e) => handleChange(e, 'taxes')}
-          />
+          <div className="price-input-container">
+            <input
+              type="text"
+              value={formData.taxes}
+              onChange={(e) => handleChange(e, 'taxes')}
+            />
+            <span className="currency-display">{formData.currency}</span>
+          </div>
         </div>
         <div className="form-group">
           <label>Total Amount:</label>
+          <div className="price-input-container">
+            <input
+              type="text"
+              value={formData.totalAmount}
+              onChange={(e) => handleChange(e, 'totalAmount')}
+            />
+            <span className="currency-display">{formData.currency}</span>
+          </div>
+        </div>
+        <div className="mb-4">
+          <label className="block text-gray-700 text-sm font-bold mb-2">
+            Currency
+          </label>
           <input
-            type="number"
-            value={formData.totalAmount}
-            onChange={(e) => handleChange(e, 'totalAmount')}
+            type="text"
+            name="currency"
+            value={formData.currency || ''}
+            onChange={(e) => handleChange(e, 'currency')}
+            className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+            placeholder="Currency (e.g., EUR, USD, INR)"
           />
         </div>
       </div>
@@ -359,19 +393,39 @@ const InvoiceForm = ({ invoiceData, onSave }) => {
               />
             </div>
             <div className="form-group">
+              <label>Unit:</label>
+              <input
+                type="text"
+                value={item.quantityUnit || ''}
+                onChange={(e) => handleItemChange(index, 'quantityUnit', e.target.value)}
+              />
+            </div>
+            <div className="form-group">
               <label>Price Per Unit:</label>
               <input
-                type="number"
+                type="text"
                 value={item.pricePerUnit || ''}
                 onChange={(e) => handleItemChange(index, 'pricePerUnit', e.target.value)}
+                onKeyPress={(e) => {
+                  // Allow only numbers and decimal point
+                  if (!/[0-9.]/.test(e.key)) {
+                    e.preventDefault();
+                  }
+                }}
               />
             </div>
             <div className="form-group">
               <label>Total Price:</label>
               <input
-                type="number"
+                type="text"
                 value={item.totalPrice || ''}
                 onChange={(e) => handleItemChange(index, 'totalPrice', e.target.value)}
+                onKeyPress={(e) => {
+                  // Allow only numbers and decimal point
+                  if (!/[0-9.]/.test(e.key)) {
+                    e.preventDefault();
+                  }
+                }}
               />
             </div>
             <button onClick={() => removeItem(index)}>Remove</button>
@@ -383,6 +437,22 @@ const InvoiceForm = ({ invoiceData, onSave }) => {
       <button className="save-button" onClick={() => onSave(formData)}>
         Save Changes
       </button>
+
+      <style jsx>{`
+        .price-input-container {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+        .currency-display {
+          color: #666;
+          font-size: 0.9em;
+          min-width: 40px;
+        }
+        .price-input-container input {
+          width: calc(100% - 50px);
+        }
+      `}</style>
     </div>
   );
 };

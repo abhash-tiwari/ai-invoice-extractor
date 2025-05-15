@@ -67,6 +67,8 @@ function App() {
         updatedData
       );
       alert('Invoice saved successfully!');
+
+      window.location.reload();
     } catch (error) {
       console.error('Error:', error.message);
       alert('Failed to save invoice');
