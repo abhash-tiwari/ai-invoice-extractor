@@ -1,6 +1,32 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 
 const InvoiceForm = ({ invoiceData, onSave }) => {
+  const [formData, setFormData] = useState(invoiceData || {
+    poNumber: '',
+    invoiceNumber: '',
+    seller: '',
+    buyer: '',
+    consignee: '',
+    address: '',
+    notifyParty: '',
+    shippingMethod: '',
+    incoterm: '',
+    portOfDischarge: '',
+    bankAccountHolder: '',
+    bankName: '',
+    bankAccountNumber: '',
+    bankIfscCode: '',
+    bankSwiftCode: '',
+    deliveryLocation: '',
+    invoiceDate: '',
+    paymentTerms: '',
+    itemsPurchased: [],
+    subtotal: '',
+    taxes: '',
+    totalAmount: '',
+    currency: ''
+  });
+
   // Helper function to format object string to readable text
   const formatObjectString = (str) => {
     if (!str) return '';
@@ -93,65 +119,30 @@ const InvoiceForm = ({ invoiceData, onSave }) => {
     }
   };
 
-  const [formData, setFormData] = useState(invoiceData || {
-    poNumber: '',
-    invoiceNumber: '',
-    seller: '',
-    buyer: '',
-    consignee: '',
-    shippingMethod: '',
-    incoterm: '',
-    portOfDischarge: '',
-    bankAccountHolder: '',
-    bankName: '',
-    bankAccountNumber: '',
-    bankIfscCode: '',
-    bankSwiftCode: '',
-    deliveryLocation: '',
-    invoiceDate: '',
-    paymentTerms: '',
-    itemsPurchased: [],
-    subtotal: '',
-    taxes: '',
-    totalAmount: '',
-    currency: ''
-  });
-
-  // Helper function to format price with currency
-  const formatPrice = (value) => {
-    if (!value) return '';
-    return `${value} ${formData.currency || ''}`;
-  };
-
-  // Helper function to extract numeric value from price string
-  const extractNumericValue = (priceString) => {
-    if (!priceString) return '';
-    return priceString.replace(/[^0-9.]/g, '');
-  };
-
-  const handleChange = (e, field) => {
+  // Memoize handlers to prevent unnecessary re-renders
+  const handleChange = useCallback((e, field) => {
     const value = e.target.value;
     setFormData(prev => ({
       ...prev,
-      [field]: field === 'seller' || field === 'buyer' || field === 'consignee'
-        ? value  // Store the raw value instead of converting to JSON string
-        : value
-    }));
-  };
-
-  const handleItemChange = (index, field, value) => {
-    const newItems = [...formData.itemsPurchased];
-    newItems[index] = {
-      ...newItems[index],
       [field]: value
-    };
-    setFormData(prev => ({
-      ...prev,
-      itemsPurchased: newItems
     }));
-  };
+  }, []);
 
-  const addNewItem = () => {
+  const handleItemChange = useCallback((index, field, value) => {
+    setFormData(prev => {
+      const newItems = [...prev.itemsPurchased];
+      newItems[index] = {
+        ...newItems[index],
+        [field]: value
+      };
+      return {
+        ...prev,
+        itemsPurchased: newItems
+      };
+    });
+  }, []);
+
+  const addNewItem = useCallback(() => {
     setFormData(prev => ({
       ...prev,
       itemsPurchased: [
@@ -166,23 +157,43 @@ const InvoiceForm = ({ invoiceData, onSave }) => {
         }
       ]
     }));
-  };
+  }, []);
 
-  const removeItem = (index) => {
+  const removeItem = useCallback((index) => {
     setFormData(prev => ({
       ...prev,
       itemsPurchased: prev.itemsPurchased.filter((_, i) => i !== index)
     }));
-  };
+  }, []);
 
-  // Helper function to check if an item is a string
-  const isStringItem = (item) => typeof item === 'string';
+  // Memoize the save handler
+  const handleSave = useCallback(() => {
+    onSave(formData);
+  }, [formData, onSave]);
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    const [index, field] = name.split('.');
-    handleItemChange(index, field, value);
-  };
+  // Memoize the price formatter
+  const formatPrice = useCallback((value) => {
+    if (!value) return 'Not captured';
+    return `${value} ${formData.currency || ''}`;
+  }, [formData.currency]);
+
+  // Memoize the numeric value extractor
+  const extractNumericValue = useCallback((priceString) => {
+    if (!priceString) return '';
+    return priceString.replace(/[^0-9.]/g, '');
+  }, []);
+
+  // Memoize the key press handler for numeric inputs
+  const handleNumericKeyPress = useCallback((e) => {
+    if (!/[0-9.]/.test(e.key)) {
+      e.preventDefault();
+    }
+  }, []);
+
+  // Memoize the date formatter
+  const formatDate = useMemo(() => {
+    return formData.invoiceDate ? new Date(formData.invoiceDate).toISOString().split('T')[0] : '';
+  }, [formData.invoiceDate]);
 
   return (
     <div className="invoice-form">
@@ -192,23 +203,25 @@ const InvoiceForm = ({ invoiceData, onSave }) => {
           <label>PO Number:</label>
           <input
             type="text"
-            value={formData.poNumber}
+            value={formData.poNumber || ''}
             onChange={(e) => handleChange(e, 'poNumber')}
+            placeholder="Not captured"
           />
         </div>
         <div className="form-group">
           <label>Invoice Number:</label>
           <input
             type="text"
-            value={formData.invoiceNumber}
+            value={formData.invoiceNumber || ''}
             onChange={(e) => handleChange(e, 'invoiceNumber')}
+            placeholder="Not captured"
           />
         </div>
         <div className="form-group">
           <label>Invoice Date:</label>
           <input
             type="date"
-            value={formData.invoiceDate ? new Date(formData.invoiceDate).toISOString().split('T')[0] : ''}
+            value={formatDate}
             onChange={(e) => handleChange(e, 'invoiceDate')}
           />
         </div>
@@ -218,6 +231,7 @@ const InvoiceForm = ({ invoiceData, onSave }) => {
             value={formData.seller || ''}
             onChange={(e) => handleChange(e, 'seller')}
             rows="4"
+            placeholder="Not captured"
           />
         </div>
         <div className="form-group">
@@ -226,6 +240,7 @@ const InvoiceForm = ({ invoiceData, onSave }) => {
             value={formData.buyer || ''}
             onChange={(e) => handleChange(e, 'buyer')}
             rows="4"
+            placeholder="Not captured"
           />
         </div>
         <div className="form-group">
@@ -234,86 +249,115 @@ const InvoiceForm = ({ invoiceData, onSave }) => {
             value={formData.consignee || ''}
             onChange={(e) => handleChange(e, 'consignee')}
             rows="4"
+            placeholder="Not captured"
+          />
+        </div>
+        <div className="form-group">
+          <label>Address:</label>
+          <textarea
+            value={formData.address || ''}
+            onChange={(e) => handleChange(e, 'address')}
+            rows="4"
+            placeholder="Not captured"
+          />
+        </div>
+        <div className="form-group">
+          <label>Notify Party:</label>
+          <textarea
+            value={formData.notifyParty || ''}
+            onChange={(e) => handleChange(e, 'notifyParty')}
+            rows="4"
+            placeholder="Not captured"
           />
         </div>
         <div className="form-group">
           <label>Delivery Location:</label>
           <input
             type="text"
-            value={formData.deliveryLocation}
+            value={formData.deliveryLocation || ''}
             onChange={(e) => handleChange(e, 'deliveryLocation')}
+            placeholder="Not captured"
           />
         </div>
         <div className="form-group">
           <label>Shipping Method:</label>
           <input
             type="text"
-            value={formData.shippingMethod}
+            value={formData.shippingMethod || ''}
             onChange={(e) => handleChange(e, 'shippingMethod')}
+            placeholder="Not captured"
           />
         </div>
         <div className="form-group">
           <label>Incoterm:</label>
           <input
             type="text"
-            value={formData.incoterm}
+            value={formData.incoterm || ''}
             onChange={(e) => handleChange(e, 'incoterm')}
+            placeholder="Not captured"
           />
         </div>
         <div className="form-group">
           <label>Port of Discharge:</label>
           <input
             type="text"
-            value={formData.portOfDischarge}
+            value={formData.portOfDischarge || ''}
             onChange={(e) => handleChange(e, 'portOfDischarge')}
+            placeholder="Not captured"
           />
         </div>
         <div className="form-group">
           <label>Payment Terms:</label>
           <input
             type="text"
-            value={formData.paymentTerms}
+            value={formData.paymentTerms || ''}
             onChange={(e) => handleChange(e, 'paymentTerms')}
+            placeholder="Not captured"
           />
         </div>
         <div className="form-group">
           <label>Bank Account Holder:</label>
           <input
             type="text"
-            value={formData.bankAccountHolder}
+            value={formData.bankAccountHolder || ''}
             onChange={(e) => handleChange(e, 'bankAccountHolder')}
+            placeholder="Not captured"
           />
         </div>
         <div className="form-group">
           <label>Bank Name:</label>
           <input
             type="text"
-            value={formData.bankName}
+            value={formData.bankName || ''}
             onChange={(e) => handleChange(e, 'bankName')}
+            placeholder="Not captured"
           />
         </div>
         <div className="form-group">
           <label>Bank Account Number:</label>
           <input
             type="text"
-            value={formData.bankAccountNumber}
+            value={formData.bankAccountNumber || ''}
             onChange={(e) => handleChange(e, 'bankAccountNumber')}
+            placeholder="Not captured"
           />
         </div>
         <div className="form-group">
           <label>Bank IFSC Code:</label>
           <input
             type="text"
-            value={formData.bankIfscCode}
+            value={formData.bankIfscCode || ''}
             onChange={(e) => handleChange(e, 'bankIfscCode')}
+            placeholder="Not captured"
           />
         </div>
         <div className="form-group">
           <label>Bank SWIFT Code:</label>
           <input
             type="text"
-            value={formData.bankSwiftCode}
+            value={formData.bankSwiftCode || ''}
             onChange={(e) => handleChange(e, 'bankSwiftCode')}
+            placeholder="Not captured"
           />
         </div>
         <div className="form-group">
@@ -321,8 +365,9 @@ const InvoiceForm = ({ invoiceData, onSave }) => {
           <div className="price-input-container">
             <input
               type="text"
-              value={formData.subtotal}
+              value={formData.subtotal || ''}
               onChange={(e) => handleChange(e, 'subtotal')}
+              placeholder="Not captured"
             />
             <span className="currency-display">{formData.currency}</span>
           </div>
@@ -332,8 +377,9 @@ const InvoiceForm = ({ invoiceData, onSave }) => {
           <div className="price-input-container">
             <input
               type="text"
-              value={formData.taxes}
+              value={formData.taxes || ''}
               onChange={(e) => handleChange(e, 'taxes')}
+              placeholder="Not captured"
             />
             <span className="currency-display">{formData.currency}</span>
           </div>
@@ -343,14 +389,15 @@ const InvoiceForm = ({ invoiceData, onSave }) => {
           <div className="price-input-container">
             <input
               type="text"
-              value={formData.totalAmount}
+              value={formData.totalAmount || ''}
               onChange={(e) => handleChange(e, 'totalAmount')}
+              placeholder="Not captured"
             />
             <span className="currency-display">{formData.currency}</span>
           </div>
         </div>
-        <div className="mb-4">
-          <label className="block text-gray-700 text-sm font-bold mb-2">
+        <div className="form-group">
+          <label className="currency-container">
             Currency
           </label>
           <input
@@ -374,6 +421,7 @@ const InvoiceForm = ({ invoiceData, onSave }) => {
                 type="text"
                 value={item.itemRef || ''}
                 onChange={(e) => handleItemChange(index, 'itemRef', e.target.value)}
+                placeholder="Not captured"
               />
             </div>
             <div className="form-group">
@@ -382,6 +430,7 @@ const InvoiceForm = ({ invoiceData, onSave }) => {
                 type="text"
                 value={item.description || ''}
                 onChange={(e) => handleItemChange(index, 'description', e.target.value)}
+                placeholder="Not captured"
               />
             </div>
             <div className="form-group">
@@ -390,6 +439,7 @@ const InvoiceForm = ({ invoiceData, onSave }) => {
                 type="number"
                 value={item.quantity || ''}
                 onChange={(e) => handleItemChange(index, 'quantity', e.target.value)}
+                placeholder="Not captured"
               />
             </div>
             <div className="form-group">
@@ -398,6 +448,7 @@ const InvoiceForm = ({ invoiceData, onSave }) => {
                 type="text"
                 value={item.quantityUnit || ''}
                 onChange={(e) => handleItemChange(index, 'quantityUnit', e.target.value)}
+                placeholder="Not captured"
               />
             </div>
             <div className="form-group">
@@ -406,12 +457,8 @@ const InvoiceForm = ({ invoiceData, onSave }) => {
                 type="text"
                 value={item.pricePerUnit || ''}
                 onChange={(e) => handleItemChange(index, 'pricePerUnit', e.target.value)}
-                onKeyPress={(e) => {
-                  // Allow only numbers and decimal point
-                  if (!/[0-9.]/.test(e.key)) {
-                    e.preventDefault();
-                  }
-                }}
+                placeholder="Not captured"
+                onKeyPress={handleNumericKeyPress}
               />
             </div>
             <div className="form-group">
@@ -420,12 +467,8 @@ const InvoiceForm = ({ invoiceData, onSave }) => {
                 type="text"
                 value={item.totalPrice || ''}
                 onChange={(e) => handleItemChange(index, 'totalPrice', e.target.value)}
-                onKeyPress={(e) => {
-                  // Allow only numbers and decimal point
-                  if (!/[0-9.]/.test(e.key)) {
-                    e.preventDefault();
-                  }
-                }}
+                placeholder="Not captured"
+                onKeyPress={handleNumericKeyPress}
               />
             </div>
             <button onClick={() => removeItem(index)}>Remove</button>
@@ -434,7 +477,11 @@ const InvoiceForm = ({ invoiceData, onSave }) => {
         <button onClick={addNewItem}>Add Item</button>
       </div>
 
-      <button className="save-button" onClick={() => onSave(formData)}>
+      <div className="verification-note">
+        <p>⚠️ Please verify all fields before saving. Make sure all information is accurate and complete.</p>
+      </div>
+
+      <button className="save-button" onClick={handleSave}>
         Save Changes
       </button>
 
@@ -452,9 +499,22 @@ const InvoiceForm = ({ invoiceData, onSave }) => {
         .price-input-container input {
           width: calc(100% - 50px);
         }
+        .verification-note {
+          margin: 20px 0;
+          padding: 10px;
+          background-color: #fff3cd;
+          border: 1px solid #ffeeba;
+          border-radius: 4px;
+          color: #856404;
+        }
+        .verification-note p {
+          margin: 0;
+          font-size: 0.9em;
+        }
       `}</style>
     </div>
   );
 };
 
-export default InvoiceForm; 
+// Memoize the entire component
+export default React.memo(InvoiceForm); 

@@ -6,6 +6,7 @@ const invoiceSchema = new mongoose.Schema({
   seller: { type: String },
   buyer: { type: String },
   consignee: { type: String },
+  address: { type: String },
   notifyParty: { type: String },
   shippingMethod: { type: String },
   incoterm: { type: String },
