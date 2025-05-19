@@ -117,14 +117,14 @@ The AI Invoice Extractor is a MERN stack application designed to automate invoic
    }
    ```
 
-2. **Invoice Update**
+2. **Invoice Save**
    ```http
-   PUT /api/invoices/:id
+   POST /api/invoices/save
    Content-Type: application/json
    
    Request Body:
    {
-     // Updated invoice data
+     // invoice data
    }
    
    Response:

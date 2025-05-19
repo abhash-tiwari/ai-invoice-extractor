@@ -178,14 +178,14 @@ Response:
 
 ### Save Invoice
 ```http
-PUT /api/invoices/:id
+POST /api/invoices/save
 Content-Type: application/json
 
 Response:
 {
-  "message": "Invoice updated successfully",
+  "message": "Invoice saved successfully",
   "data": {
-    // Updated invoice data
+    // invoice data
   }
 }
 ```
