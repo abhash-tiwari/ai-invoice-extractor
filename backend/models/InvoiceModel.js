@@ -26,7 +26,14 @@ const invoiceSchema = new mongoose.Schema({
   currency: { type: String },
   fileType: { type: String },
   originalFileName: { type: String },
-  extractedText: { type: String }
+  extractedText: { type: String },
+  bankDetails: {
+    accountHolder: { type: String },
+    bankName: { type: String },
+    accountNumber: { type: String },
+    ifscCode: { type: String },
+    swiftCode: { type: String }
+  }
 }, { timestamps: true });
 
 module.exports = mongoose.model('Invoice', invoiceSchema);

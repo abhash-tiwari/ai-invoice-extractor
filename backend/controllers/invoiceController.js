@@ -2,16 +2,21 @@ const axios = require('axios');
 const parsePDF = require('../utils/pdfParser');
 const processImage = require('../utils/imageProcessor');
 const Invoice = require('../models/invoiceModel');
+const PackingList = require('../models/PackingListModel');
+const PurchaseOrder = require('../models/PurchaseOrderModel');
 
 const uploadInvoice = async (req, res) => {
   try {
+    console.log('Request body:', req.body);
+    const invoiceType = req.body.invoiceType || 'regular';
     console.log('Received upload request:', {
       file: req.file ? {
         originalname: req.file.originalname,
         mimetype: req.file.mimetype,
         size: req.file.size
       } : 'No file received',
-      headers: req.headers
+      headers: req.headers,
+      invoiceType: invoiceType
     });
 
     if (!req.file) {
@@ -48,8 +53,126 @@ const uploadInvoice = async (req, res) => {
     console.log('Text extracted successfully, length:', extractedText.length);
     console.log('Sample of extracted text:', extractedText.substring(0, 200) + '...');
 
-    const prompt = `
-Extract the following fields from the invoice and return JSON without any explanation:
+    let prompt;
+    if (invoiceType === 'packing_list') {
+      prompt = `Extract the following fields from the packing list and return JSON without any explanation:
+- vendorNumber
+- vendorNo
+- invoiceNumber
+- invoiceDate
+- buyersOrderNo
+- buyersOrderDate
+- containerNo
+- vesselFlightNo
+- shippingMethod
+- countryOfOrigin
+- countryOfDestination
+- portOfLoading
+- portOfDischarge
+- placeOfDelivery
+- address
+- deliveryLocation
+- paymentTerms
+- currency
+- exporter
+- buyer
+- consignee
+- notifyParty
+- incoterm
+- authorisedSignatory
+- totalQty
+- totalNetWeight
+- totalGrossWeight
+- itemsPurchased (extract ALL items, no matter how many there are)
+
+CRITICAL: For itemsPurchased, you MUST:
+1. Extract EVERY single item from the packing list, from the first item to the last item
+2. Maintain the exact order as they appear in the document (top to bottom)
+3. Do not skip any items, even if they appear similar
+4. Count each row/item separately, even if descriptions are similar
+5. If there are multiple items with the same description but different quantities or positions, list them separately
+6. Ensure you capture the total number of items that matches the totalQty field
+7. Double-check that you haven't missed any items before finalizing the response
+8. Maintain the original serial number of items based on the document.
+9. 8. The first column in the table is the serial number for each item (e.g., 1, 2, 3, ...). For each item in itemsPurchased, extract this serial number as the field "serialNumber". Do not skip or merge rows, even if other fields are similar.
+
+Each item in itemsPurchased MUST have these EXACT field names:
+{
+  "Serial number": "serial number that is in Marks and Packages section",
+  "description": "item description",
+  "hsnCode": "hsn code along with the text that has under hsn code",
+  "quantity": "quantity as a number",
+  "quantityUnit": "unit of quantity (e.g., bags, pieces, kg, grams, etc.)",
+  "netWeight": "net weight for the item, if available",
+  "grossWeight": "gross weight for the item, if available"
+}
+
+IMPORTANT: For all quantity and weight fields, include units if mentioned (e.g., kg, pieces).
+
+Give pure JSON only, no backticks, no markdown.
+
+Packing List Text:
+${extractedText}
+`;
+    } else if (invoiceType === 'purchase_order') {
+      prompt = `Extract the following fields from the purchase order and return JSON without any explanation:
+- vendor
+- purchaseOrderNo
+- purchaseOrderDate
+- vendorNo
+- currency
+- customerContact
+- buyerName
+- buyerEmail
+- buyerTelephone
+- otherReference
+- contractOrOfferNo
+- customerProjRef
+- termsOfPayment
+- incoterm
+- incotermLocation
+- deliveryDate
+- goodsMarked
+- billTo
+- shipTo
+- vendorContact
+- vendorEmail
+- vendorTelephone
+- vendorName
+- taxId
+- totalNetValue
+- additionalInformation
+- allowanceAmount
+- allowances
+- projectNumber
+- salesOrderNr
+- salesOrderItemNr
+- itemsOrdered (extract ALL items, no matter how many)
+
+Each item in itemsOrdered MUST have these EXACT field names:
+{
+  "position": "item position number",
+  "materialNumber": "material number",
+  "materialDescription": "material description",
+  "supplierPartNumber": "supplier part number",
+  "quantity": "quantity as a number",
+  "unit": "unit of quantity (e.g., PCE, PC, etc.)",
+  "pricePerUnit": "price per unit with currency if mentioned",
+  "netValue": "net value with currency if mentioned",
+  "deliveryDate": "delivery date",
+  "version": "version",
+  "priceBase": "price base",
+  "priceBaseVersion": "price base version",
+  "description": "description"
+}
+
+Give pure JSON only, no backticks, no markdown.
+
+Purchase Order Text:
+${extractedText}
+`;
+    } else {
+      prompt = `Extract the following fields from the invoice and return JSON without any explanation:
 - poNumber
 - invoiceNumber
 - seller
@@ -57,7 +180,7 @@ Extract the following fields from the invoice and return JSON without any explan
 - consignee
 - address
 - shippingMethod
-- itemsPurchased (make sure to extract ALL items from the invoice, no matter how many there are)
+- itemsPurchased (make sure to extract ALL items from the invoice, no matter how many there are, do not limit yourself)
 - subtotal (include currency if mentioned, e.g., "1000 EUR" or "1000 USD")
 - taxes (include currency if mentioned)
 - totalAmount (include currency if mentioned)
@@ -70,7 +193,7 @@ Extract the following fields from the invoice and return JSON without any explan
 - paymentTerms
 - currency (the currency used in the invoice, e.g., EUR, USD, INR)
 
-IMPORTANT: For itemsPurchased, extract ALL items from the invoice, even if there are many. Do not limit the number of items.
+IMPORTANT: For itemsPurchased, extract ALL items from the invoice, even if there are many. Do not limit the number of items. if the items listed are same list all items allow duplications.
 Each item in itemsPurchased MUST have these EXACT field names:
 {
   "itemRef": "item reference or code",
@@ -110,6 +233,7 @@ Give pure JSON only, no backticks, no markdown.
 Invoice Text:
 ${extractedText}
 `;
+    }
 
     console.log('Sending request to Mistral API...');
     const response = await axios.post(
@@ -137,6 +261,104 @@ ${extractedText}
     const parsedData = JSON.parse(extractedData);
     console.log('Data parsed successfully:', parsedData);
 
+    // Validation for packing list items
+    if (invoiceType === 'packing_list' && Array.isArray(parsedData.itemsPurchased)) {
+      // Sort itemsPurchased by serialNumber (as a number)
+      parsedData.itemsPurchased.sort((a, b) => Number(a.serialNumber) - Number(b.serialNumber));
+      if (parsedData.totalQty) {
+        const extractedItemCount = parsedData.itemsPurchased.length;
+        const expectedItemCount = parseInt(parsedData.totalQty) || 0;
+        console.log(`Item count validation: Expected ${expectedItemCount}, Extracted ${extractedItemCount}`);
+        if (extractedItemCount !== expectedItemCount) {
+          console.warn(`WARNING: Item count mismatch! Expected ${expectedItemCount} items but extracted ${extractedItemCount} items.`);
+          console.warn('This may indicate incomplete extraction. Consider re-uploading the document.');
+        }
+      }
+    }
+
+    let savedDoc;
+    if (invoiceType === 'packing_list') {
+      const packingListData = {
+        vendorNumber: parsedData.vendorNumber || null,
+        vendorNo: parsedData.vendorNo || null,
+        invoiceNumber: parsedData.invoiceNumber || null,
+        invoiceDate: parsedData.invoiceDate || null,
+        buyersOrderNo: parsedData.buyersOrderNo || null,
+        buyersOrderDate: parsedData.buyersOrderDate || null,
+        containerNo: parsedData.containerNo || null,
+        vesselFlightNo: parsedData.vesselFlightNo || null,
+        shippingMethod: parsedData.shippingMethod || null,
+        countryOfOrigin: parsedData.countryOfOrigin || null,
+        countryOfDestination: parsedData.countryOfDestination || null,
+        portOfLoading: parsedData.portOfLoading || null,
+        portOfDischarge: parsedData.portOfDischarge || null,
+        placeOfDelivery: parsedData.placeOfDelivery || null,
+        address: parsedData.address || null,
+        deliveryLocation: parsedData.deliveryLocation || null,
+        paymentTerms: parsedData.paymentTerms || null,
+        currency: parsedData.currency || null,
+        exporter: parsedData.exporter ? JSON.stringify(parsedData.exporter) : null,
+        buyer: parsedData.buyer ? JSON.stringify(parsedData.buyer) : null,
+        consignee: parsedData.consignee ? JSON.stringify(parsedData.consignee) : null,
+        notifyParty: parsedData.notifyParty ? JSON.stringify(parsedData.notifyParty) : null,
+        incoterm: parsedData.incoterm || null,
+        authorisedSignatory: parsedData.authorisedSignatory || null,
+        totalQty: parsedData.totalQty || null,
+        totalNetWeight: parsedData.totalNetWeight || null,
+        totalGrossWeight: parsedData.totalGrossWeight || null,
+        itemsPurchased: parsedData.itemsPurchased || [],
+        bankDetails: parsedData.bankDetails || {},
+        invoiceType: invoiceType,
+        fileType: req.file.mimetype,
+        originalFileName: req.file.originalname,
+        extractedText: extractedText
+      };
+      console.log('Creating packing list in database...');
+      savedDoc = await PackingList.create(packingListData);
+      console.log('Packing list created successfully');
+    } else if (invoiceType === 'purchase_order') {
+      const purchaseOrderData = {
+        vendor: parsedData.vendor || null,
+        purchaseOrderNo: parsedData.purchaseOrderNo || null,
+        purchaseOrderDate: parsedData.purchaseOrderDate || null,
+        vendorNo: parsedData.vendorNo || null,
+        currency: parsedData.currency || null,
+        customerContact: typeof parsedData.customerContact === 'object' ? parsedData.customerContact : parsedData.customerContact ? { name: parsedData.customerContact } : {},
+        buyerName: parsedData.buyerName || null,
+        buyerEmail: parsedData.buyerEmail || null,
+        buyerTelephone: parsedData.buyerTelephone || null,
+        otherReference: parsedData.otherReference || null,
+        contractOrOfferNo: parsedData.contractOrOfferNo || null,
+        customerProjRef: parsedData.customerProjRef || null,
+        termsOfPayment: parsedData.termsOfPayment || null,
+        incoterm: parsedData.incoterm || null,
+        incotermLocation: parsedData.incotermLocation || null,
+        deliveryDate: parsedData.deliveryDate || null,
+        goodsMarked: parsedData.goodsMarked || null,
+        billTo: parsedData.billTo || null,
+        shipTo: parsedData.shipTo || null,
+        vendorContact: parsedData.vendorContact || null,
+        vendorEmail: parsedData.vendorEmail || null,
+        vendorTelephone: parsedData.vendorTelephone || null,
+        vendorName: parsedData.vendorName || null,
+        taxId: parsedData.taxId || null,
+        totalNetValue: parsedData.totalNetValue || null,
+        additionalInformation: parsedData.additionalInformation || null,
+        allowanceAmount: parsedData.allowanceAmount || null,
+        allowances: parsedData.allowances || null,
+        projectNumber: parsedData.projectNumber || null,
+        salesOrderNr: parsedData.salesOrderNr || null,
+        salesOrderItemNr: parsedData.salesOrderItemNr || null,
+        itemsOrdered: parsedData.itemsOrdered || [],
+        invoiceType: invoiceType,
+        fileType: req.file.mimetype,
+        originalFileName: req.file.originalname,
+        extractedText: extractedText
+      };
+      console.log('Creating purchase order in database...');
+      savedDoc = await PurchaseOrder.create(purchaseOrderData);
+      console.log('Purchase order created successfully');
+    } else {
     const invoiceData = {
       poNumber: parsedData.poNumber || null,
       invoiceNumber: parsedData.invoiceNumber || null,
@@ -163,14 +385,15 @@ ${extractedText}
       currency: parsedData.currency || 'not specified',
       fileType: req.file.mimetype,
       originalFileName: req.file.originalname,
-      extractedText: extractedText
+        extractedText: extractedText,
+        invoiceType: invoiceType
     };
-
     console.log('Creating invoice in database...');
-    const invoice = await Invoice.create(invoiceData);
+      savedDoc = await Invoice.create(invoiceData);
     console.log('Invoice created successfully');
+    }
 
-    res.status(200).json({ message: 'Invoice extracted and saved', data: invoice });
+    res.status(200).json({ message: invoiceType === 'packing_list' ? 'Packing list extracted and saved' : invoiceType === 'purchase_order' ? 'Purchase order extracted and saved' : 'Invoice extracted and saved', data: savedDoc });
 
   } catch (error) {
     console.error('Detailed error:', {
