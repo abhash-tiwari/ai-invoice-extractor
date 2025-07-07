@@ -10,6 +10,7 @@ function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [fileName, setFileName] = useState('');
   const [invoiceType, setInvoiceType] = useState('regular');
+  const [expectedItemCount, setExpectedItemCount] = useState('');
 
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
@@ -32,6 +33,9 @@ function App() {
     const formData = new FormData();
     formData.append('invoice', file);
     formData.append('invoiceType', invoiceType);
+    if (expectedItemCount) {
+      formData.append('expectedItemCount', expectedItemCount);
+    }
 
     try {
       console.log('Sending request to:', `http://localhost:5000/api/invoices/upload`);
@@ -89,6 +93,18 @@ function App() {
             <option value="purchase_order">Purchase Order</option>
           </select>
         </div>
+        {invoiceType === 'packing_list' && (
+          <div className="form-group" style={{ marginBottom: '1rem' }}>
+            <label>Expected Number of Items:</label>
+            <input
+              type="number"
+              min="1"
+              value={expectedItemCount}
+              onChange={e => setExpectedItemCount(e.target.value)}
+              placeholder="e.g. 22"
+            />
+          </div>
+        )}
         <div className='file-input-container'>
           <label className="file-input-label">
             <input 

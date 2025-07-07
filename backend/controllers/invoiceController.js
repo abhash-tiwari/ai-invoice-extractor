@@ -9,6 +9,7 @@ const uploadInvoice = async (req, res) => {
   try {
     console.log('Request body:', req.body);
     const invoiceType = req.body.invoiceType || 'regular';
+    const expectedItemCount = req.body.expectedItemCount ? parseInt(req.body.expectedItemCount) : null;
     console.log('Received upload request:', {
       file: req.file ? {
         originalname: req.file.originalname,
@@ -85,6 +86,8 @@ const uploadInvoice = async (req, res) => {
 - totalGrossWeight
 - itemsPurchased (extract ALL items, no matter how many there are)
 
+${expectedItemCount ? `There are exactly ${expectedItemCount} items in the table. Extract exactly ${expectedItemCount} items. Ignore any row that contains the word 'TOTAL' or is a summary row. If you extract more than ${expectedItemCount}, remove the extras from the end.` : ''}
+
 CRITICAL: For itemsPurchased, you MUST:
 1. Extract EVERY single item from the packing list, from the first item to the last item
 2. Maintain the exact order as they appear in the document (top to bottom)
@@ -93,12 +96,11 @@ CRITICAL: For itemsPurchased, you MUST:
 5. If there are multiple items with the same description but different quantities or positions, list them separately
 6. Ensure you capture the total number of items that matches the totalQty field
 7. Double-check that you haven't missed any items before finalizing the response
-8. Maintain the original serial number of items based on the document.
-9. 8. The first column in the table is the serial number for each item (e.g., 1, 2, 3, ...). For each item in itemsPurchased, extract this serial number as the field "serialNumber". Do not skip or merge rows, even if other fields are similar.
+8. The first column in the table is the serial number for each item (e.g., 1, 2, 3, ...). For each item in itemsPurchased, extract this serial number as the field "serialNumber". Do not skip or merge rows, even if other fields are similar.
 
 Each item in itemsPurchased MUST have these EXACT field names:
 {
-  "Serial number": "serial number that is in Marks and Packages section",
+  "serialNumber": "serial number that is in Marks and Packages section",
   "description": "item description",
   "hsnCode": "hsn code along with the text that has under hsn code",
   "quantity": "quantity as a number",
@@ -261,16 +263,34 @@ ${extractedText}
     const parsedData = JSON.parse(extractedData);
     console.log('Data parsed successfully:', parsedData);
 
-    // Validation for packing list items
+    // Validation and enforcement for packing list items
     if (invoiceType === 'packing_list' && Array.isArray(parsedData.itemsPurchased)) {
+      // Remove any item with 'TOTAL' in serialNumber or description
+      parsedData.itemsPurchased = parsedData.itemsPurchased.filter(
+        item =>
+          !(item.serialNumber && item.serialNumber.toUpperCase().includes('TOTAL')) &&
+          !(item.description && item.description.toUpperCase().includes('TOTAL'))
+      );
+      // If expectedItemCount is set, truncate or warn
+      if (expectedItemCount) {
+        if (parsedData.itemsPurchased.length > expectedItemCount) {
+          parsedData.itemsPurchased = parsedData.itemsPurchased.slice(0, expectedItemCount);
+        } else if (parsedData.itemsPurchased.length < expectedItemCount) {
+          console.warn(`WARNING: Fewer items extracted (${parsedData.itemsPurchased.length}) than expected (${expectedItemCount})`);
+        }
+      }
       // Sort itemsPurchased by serialNumber (as a number)
-      parsedData.itemsPurchased.sort((a, b) => Number(a.serialNumber) - Number(b.serialNumber));
+      parsedData.itemsPurchased.sort((a, b) => {
+        const numA = parseInt((a.serialNumber || '').match(/^\d+/)?.[0] || '0', 10);
+        const numB = parseInt((b.serialNumber || '').match(/^\d+/)?.[0] || '0', 10);
+        return numA - numB;
+      });
       if (parsedData.totalQty) {
         const extractedItemCount = parsedData.itemsPurchased.length;
-        const expectedItemCount = parseInt(parsedData.totalQty) || 0;
-        console.log(`Item count validation: Expected ${expectedItemCount}, Extracted ${extractedItemCount}`);
-        if (extractedItemCount !== expectedItemCount) {
-          console.warn(`WARNING: Item count mismatch! Expected ${expectedItemCount} items but extracted ${extractedItemCount} items.`);
+        const expectedQty = parseInt(parsedData.totalQty) || 0;
+        console.log(`Item count validation: Expected ${expectedQty}, Extracted ${extractedItemCount}`);
+        if (extractedItemCount !== expectedQty) {
+          console.warn(`WARNING: Item count mismatch! Expected ${expectedQty} items but extracted ${extractedItemCount} items.`);
           console.warn('This may indicate incomplete extraction. Consider re-uploading the document.');
         }
       }
