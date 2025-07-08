@@ -346,8 +346,13 @@ const InvoiceForm = ({ invoiceData, onSave, invoiceType: propInvoiceType }) => {
 
   // Memoize the save handler
   const handleSave = useCallback(() => {
-    onSave(formData);
-  }, [formData, onSave]);
+    // Ensure _id is present if available in invoiceData
+    const dataToSave = { ...formData };
+    if (invoiceData && invoiceData._id) {
+      dataToSave._id = invoiceData._id;
+    }
+    onSave(dataToSave);
+  }, [formData, onSave, invoiceData]);
 
   // Memoize the price formatter
   const formatPrice = useCallback((value) => {

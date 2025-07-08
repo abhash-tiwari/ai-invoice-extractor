@@ -86,7 +86,53 @@ const uploadInvoice = async (req, res) => {
 - totalGrossWeight
 - itemsPurchased (extract ALL items, no matter how many there are)
 
-${expectedItemCount ? `There are exactly ${expectedItemCount} items in the table. Extract exactly ${expectedItemCount} items. Ignore any row that contains the word 'TOTAL' or is a summary row. If you extract more than ${expectedItemCount}, remove the extras from the end.` : ''}
+${expectedItemCount ? `There are exactly ${expectedItemCount} items in the table. Extract exactly ${expectedItemCount} items. Ignore any row that contains the word 'TOTAL' or is a summary row. Maintain the Items as from start to ${expectedItemCount}.` : ''}
+
+IMPORTANT: Packing list tables may have different column headers for the same data. For each item, map the table columns to the following standard field names, even if the column header is different:
+- "MARKS & NOS ON PACKAGES", "SR.NO", "S.NO", "NO." → serialNumber
+- "BOX SIZE", "BOX SIZE (IN MM)" → boxSize
+- "DESCRIPTION OF GOODS", "DESCRIPTION" → description
+- "HSN CODE" → hsnCode
+- "QTY", "QUANTITY", "QTY. (NOS)" → quantity
+- "NET WEIGHT", "NET WEIGHT IN K.G." → netWeight
+- "GROSS WEIGHT", "GROSS WEIGHT IN K.G." → grossWeight
+
+For each row in the table, extract the values exactly as they appear in that row. Do not copy, infer, or repeat values from other rows. Each item in itemsPurchased must correspond to one and only one row in the table, and must use the values from that row only. Each extracted item must be unique and match the corresponding row in the table.
+
+The first column is always the serial number for each item (e.g., 1, 2, 3, ...). Use this as the "serialNumber" field.
+
+Do not extract any row that is a summary or total row (e.g., if the description contains 'TOTAL' or the serial number is not a number).
+
+If a value is missing in a row, set it to null or an empty string. If a row has merged or missing cells, do your best to align the values to the correct fields.
+
+Example:
+If the table has rows:
+|  1 MFCPL/ABB/VAASA | 1200 x 800 x 1016 | STATOR FRAME 225 FLANGE M/CED | ... | 356.32 | 426.32 |
+| 2  MFCPL/ABB/VAASA|                   | STATOR FRAME 200 FOOT M/CED   | ... |        | 395.248 |
+| TOTAL | ... | ... | ... | 98 | 7874.020 | 9364.020 |
+
+The extracted items should be:
+[
+  {
+    "serialNumber": "1 MFCL/ABB/VAASA",
+    "boxSize": "1200 x 800 x 1016",
+    "description": "STATOR FRAME 225 FLANGE M/CED",
+    ...,
+    "netWeight": "356.32",
+    "grossWeight": "426.32"
+  },
+  {
+    "serialNumber": "2 MFCPL/ABB/VAASA",
+    "boxSize": null,
+    "description": "STATOR FRAME 200 FOOT M/CED",
+    ...,
+    "netWeight": null,
+    "grossWeight": "395.248"
+  }
+  // Do not extract the TOTAL row!
+]
+
+Extract EVERY row from the table, even if some fields are missing. If a value is missing, set it to null or an empty string. Do not skip or merge rows, except for summary/total rows which must be ignored.
 
 CRITICAL: For itemsPurchased, you MUST:
 1. Extract EVERY single item from the packing list, from the first item to the last item
@@ -101,6 +147,7 @@ CRITICAL: For itemsPurchased, you MUST:
 Each item in itemsPurchased MUST have these EXACT field names:
 {
   "serialNumber": "serial number that is in Marks and Packages section",
+  "boxSize": "box size if available",
   "description": "item description",
   "hsnCode": "hsn code along with the text that has under hsn code",
   "quantity": "quantity as a number",
@@ -151,18 +198,18 @@ ${extractedText}
 - salesOrderItemNr
 - itemsOrdered (extract ALL items, no matter how many)
 
+${expectedItemCount ? `There are exactly ${expectedItemCount} items in the table. Extract exactly ${expectedItemCount} items. Ignore any row that contains the word 'TOTAL' or is a summary row. If you extract more than ${expectedItemCount}, remove the extras from the end.` : ''}
+
 Each item in itemsOrdered MUST have these EXACT field names:
 {
-  "position": "item position number",
+  "position": "item position number do not give serial number in position",
   "materialNumber": "material number",
   "materialDescription": "material description",
-  "supplierPartNumber": "supplier part number",
   "quantity": "quantity as a number",
   "unit": "unit of quantity (e.g., PCE, PC, etc.)",
   "pricePerUnit": "price per unit with currency if mentioned",
   "netValue": "net value with currency if mentioned",
   "deliveryDate": "delivery date",
-  "version": "version",
   "priceBase": "price base",
   "priceBaseVersion": "price base version",
   "description": "description"
@@ -195,23 +242,50 @@ ${extractedText}
 - paymentTerms
 - currency (the currency used in the invoice, e.g., EUR, USD, INR)
 
-IMPORTANT: For itemsPurchased, extract ALL items from the invoice, even if there are many. Do not limit the number of items. if the items listed are same list all items allow duplications.
+${expectedItemCount ? `There are exactly ${expectedItemCount} items in the table. Extract exactly ${expectedItemCount} items. Ignore any row that contains the word 'TOTAL' or is a summary row. If you extract more than ${expectedItemCount}, remove the extras from the end.` : ''}
+
+IMPORTANT: Invoice tables may have different column headers for the same data. For each item, map the table columns to the following standard field names, even if the column header is different:
+- "QTY", "QTY. (NOS)", "QUANTITY" → quantity
+- "RATE", "RATE PER P/C.", "PRICE PER UNIT" → pricePerUnit
+- "TOTAL WEIGHT", "WEIGHT", "NET WEIGHT" → totalWeight
+- "AMOUNT", "AMOUNT € (EUR)", "TOTAL PRICE" → totalPrice
+- "DESCRIPTION OF GOODS", "DESCRIPTION" → description
+- "HSN CODE" → hsnCode
+- "ITEM CODE", "ITEM REF", "ITEM REFERENCE" → itemRef
+
+If the column header is not an exact match, use your best judgment to map it to the correct field based on its meaning and the data in the column. If a value is missing, set the field to null or an empty string.
+
+Example:
+If the table has columns:
+| QTY. (NOS) | RATE PER P/C. € (EUR) | TOTAL WEIGHT | AMOUNT € (EUR) |
+and a row:
+| 20 | 120.00 | 1781.60 | € 2,400.00 |
+
+The extracted item should be:
+{
+  "quantity": 20,
+  "pricePerUnit": "120.00 EUR",
+  "totalWeight": "1781.60",
+  "totalPrice": "2400.00 EUR"
+  // ...other fields as available
+}
+
 Each item in itemsPurchased MUST have these EXACT field names:
 {
   "itemRef": "item reference or code",
   "description": "item description",
-  "quantity": "quantity as a number",
+  "quantity": "look for quantity/qty as a number",
   "quantityUnit": "unit of quantity (e.g., bags, pieces, kg, grams, etc.)",
-  "pricePerUnit": "price per unit with currency if mentioned (e.g., '10 EUR' or '10 USD')",
-  "totalPrice": "total price with currency if mentioned"
+  "pricePerUnit": "look for price per unit/ rate per p/c with currency if mentioned (e.g., '10 EUR' or '10 USD')",
+  "totalWeight": "total weight if mentioned",
+  "totalPrice": "look for total price/amount with currency if mentioned"
 }
 
-Note: If you find similar fields with different names (like unitPrice instead of pricePerUnit, or amount instead of totalPrice), 
-always use the standardized field names above.
+IMPORTANT: For every item, always include the "totalWeight" field, even if it is not found. If not found, set it to null or an empty string.
 
-IMPORTANT: For all price-related fields (subtotal, taxes, totalAmount, pricePerUnit, totalPrice), include the currency if it's mentioned in the invoice.
-Look for currency symbols (€, $, ₹, etc.) or currency codes (EUR, USD, INR, etc.) near the price values.
-If the same currency is used throughout the invoice, use that currency for all price fields.
+Note: If you find similar fields with different names (like unitPrice instead of pricePerUnit, or amount instead of totalPrice), always use the standardized field names above.
+
+IMPORTANT: For all price-related fields (subtotal, taxes, totalAmount, pricePerUnit, totalPrice), include the currency if it's mentioned in the invoice. Look for currency symbols (€, $, ₹, etc.) or currency codes (EUR, USD, INR, etc.) near the price values. If the same currency is used throughout the invoice, use that currency for all price fields.
 
 For bankDetails, look for patterns like:
 - Bank name followed by account details
@@ -469,4 +543,46 @@ const saveInvoice = async (req, res) => {
   }
 };
 
-module.exports = { uploadInvoice, saveInvoice };
+const savePackingList = async (req, res) => {
+  try {
+    const { _id, ...updateData } = req.body;
+    if (!_id) {
+      return res.status(400).json({ message: 'Packing List ID is required' });
+    }
+    const updatedPackingList = await PackingList.findByIdAndUpdate(
+      _id,
+      updateData,
+      { new: true, runValidators: true }
+    );
+    if (!updatedPackingList) {
+      return res.status(404).json({ message: 'Packing List not found' });
+    }
+    res.status(200).json({ message: 'Packing List updated successfully', data: updatedPackingList });
+  } catch (error) {
+    console.error('Error saving packing list:', error.message);
+    res.status(500).json({ message: 'Server Error' });
+  }
+};
+
+const savePurchaseOrder = async (req, res) => {
+  try {
+    const { _id, ...updateData } = req.body;
+    if (!_id) {
+      return res.status(400).json({ message: 'Purchase Order ID is required' });
+    }
+    const updatedPurchaseOrder = await PurchaseOrder.findByIdAndUpdate(
+      _id,
+      updateData,
+      { new: true, runValidators: true }
+    );
+    if (!updatedPurchaseOrder) {
+      return res.status(404).json({ message: 'Purchase Order not found' });
+    }
+    res.status(200).json({ message: 'Purchase Order updated successfully', data: updatedPurchaseOrder });
+  } catch (error) {
+    console.error('Error saving purchase order:', error.message);
+    res.status(500).json({ message: 'Server Error' });
+  }
+};
+
+module.exports = { uploadInvoice, saveInvoice, savePackingList, savePurchaseOrder };

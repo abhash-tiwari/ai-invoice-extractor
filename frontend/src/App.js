@@ -38,9 +38,9 @@ function App() {
     }
 
     try {
-      console.log('Sending request to:', `http://localhost:5000/api/invoices/upload`);
+      console.log('Sending request to:', `/api/invoices/upload`);
       const res = await axios.post(
-        `http://localhost:5000/api/invoices/upload`,
+        `/api/invoices/upload`,
         formData,
         {
           headers: {
@@ -67,13 +67,15 @@ function App() {
   };
 
   const handleSave = async (updatedData) => {
+    let url = '/api/invoices/save';
+    if (updatedData.invoiceType === 'packing_list') {
+      url = '/api/invoices/save-packing-list';
+    } else if (updatedData.invoiceType === 'purchase_order') {
+      url = '/api/invoices/save-purchase-order';
+    }
     try {
-      await axios.post(
-        `http://localhost:5000/api/invoices/save`,
-        updatedData
-      );
+      await axios.post(url, updatedData);
       alert('Invoice saved successfully!');
-
       window.location.reload();
     } catch (error) {
       console.error('Error:', error.message);
@@ -93,18 +95,16 @@ function App() {
             <option value="purchase_order">Purchase Order</option>
           </select>
         </div>
-        {invoiceType === 'packing_list' && (
-          <div className="form-group" style={{ marginBottom: '1rem' }}>
-            <label>Expected Number of Items:</label>
-            <input
-              type="number"
-              min="1"
-              value={expectedItemCount}
-              onChange={e => setExpectedItemCount(e.target.value)}
-              placeholder="e.g. 22"
-            />
-          </div>
-        )}
+        <div className="form-group" style={{ marginBottom: '1rem' }}>
+          <label>Expected Number of Items:</label>
+          <input
+            type="number"
+            min="1"
+            value={expectedItemCount}
+            onChange={e => setExpectedItemCount(e.target.value)}
+            placeholder="e.g. 22"
+          />
+        </div>
         <div className='file-input-container'>
           <label className="file-input-label">
             <input 
