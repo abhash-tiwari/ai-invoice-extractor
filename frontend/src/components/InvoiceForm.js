@@ -620,6 +620,7 @@ const InvoiceForm = ({ invoiceData, onSave, invoiceType: propInvoiceType }) => {
                   {PURCHASE_ORDER_ITEMS_COLUMNS.map(col => (
                     <th key={col.key}>{col.label}</th>
                   ))}
+                  <th>Currency</th>
                   <th>Actions</th>
                 </tr>
               </thead>
@@ -628,54 +629,32 @@ const InvoiceForm = ({ invoiceData, onSave, invoiceType: propInvoiceType }) => {
                   <tr key={index}>
                     {PURCHASE_ORDER_ITEMS_COLUMNS.map(col => (
                       <td key={col.key}>
-                        {col.key === 'netValue' ? (
-                          <div style={{ display: 'flex', alignItems: 'center' }}>
-                            <input
-                              type="text"
-                              value={item[col.key] || ''}
-                              onChange={e => {
-                                setFormData(prev => {
-                                  const newItems = [...(prev.itemsOrdered || [])];
-                                  newItems[index] = {
-                                    ...newItems[index],
-                                    [col.key]: e.target.value
-                                  };
-                                  return {
-                                    ...prev,
-                                    itemsOrdered: newItems
-                                  };
-                                });
-                              }}
-                              placeholder="Not captured"
-                            />
-                            <span className="currency-display">
-                              {/* Show currency if not present in value */}
-                              {item[col.key] && !/[€$₹]|USD|INR|EUR|GBP/.test(item[col.key]) && (formData.currency || invoiceData?.currency) ?
-                                ` ${formData.currency || invoiceData?.currency}` : ''}
-                            </span>
-                          </div>
-                        ) : (
-                          <input
-                            type="text"
-                            value={item[col.key] || ''}
-                            onChange={e => {
-                              setFormData(prev => {
-                                const newItems = [...(prev.itemsOrdered || [])];
-                                newItems[index] = {
-                                  ...newItems[index],
-                                  [col.key]: e.target.value
-                                };
-                                return {
-                                  ...prev,
-                                  itemsOrdered: newItems
-                                };
-                              });
-                            }}
-                            placeholder="Not captured"
-                          />
-                        )}
+                        <input
+                          type="text"
+                          value={item[col.key] || ''}
+                          onChange={e => {
+                            setFormData(prev => {
+                              const newItems = [...(prev.itemsOrdered || [])];
+                              newItems[index] = {
+                                ...newItems[index],
+                                [col.key]: e.target.value
+                              };
+                              return {
+                                ...prev,
+                                itemsOrdered: newItems
+                              };
+                            });
+                          }}
+                          placeholder="Not captured"
+                        />
                       </td>
                     ))}
+                    <td>
+                      {/* Show currency symbol or code next to netValue */}
+                      {item.netValue && /[€$₹]/.test(item.netValue)
+                        ? item.netValue.match(/[€$₹]/)[0]
+                        : (formData.currency || invoiceData?.currency || '')}
+                    </td>
                     <td>
                       <button onClick={() => {
                         setFormData(prev => ({
