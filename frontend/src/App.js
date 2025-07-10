@@ -3,6 +3,7 @@ import axios from 'axios';
 import InvoiceForm from './components/InvoiceForm';
 import './components/InvoiceForm.css';
 import './App.css';
+import StockMaster from './components/StockMaster';
 
 function App() {
   const [file, setFile] = useState(null);
@@ -11,6 +12,7 @@ function App() {
   const [fileName, setFileName] = useState('');
   const [invoiceType, setInvoiceType] = useState('regular');
   const [expectedItemCount, setExpectedItemCount] = useState('');
+  const [activeTab, setActiveTab] = useState('extractor');
 
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
@@ -85,6 +87,39 @@ function App() {
 
   return (
     <div style={{ padding: '2rem' }}>
+      <div style={{ marginBottom: '1.5rem' }}>
+        <button
+          onClick={() => setActiveTab('extractor')}
+          style={{
+            marginRight: 12,
+            padding: '8px 16px',
+            background: activeTab === 'extractor' ? '#007bff' : '#eee',
+            color: activeTab === 'extractor' ? '#fff' : '#333',
+            border: 'none',
+            borderRadius: 4,
+            cursor: 'pointer',
+            fontWeight: activeTab === 'extractor' ? 'bold' : 'normal'
+          }}
+        >
+          Invoice Extractor
+        </button>
+        <button
+          onClick={() => setActiveTab('stock')}
+          style={{
+            padding: '8px 16px',
+            background: activeTab === 'stock' ? '#007bff' : '#eee',
+            color: activeTab === 'stock' ? '#fff' : '#333',
+            border: 'none',
+            borderRadius: 4,
+            cursor: 'pointer',
+            fontWeight: activeTab === 'stock' ? 'bold' : 'normal'
+          }}
+        >
+          Stock Master
+        </button>
+      </div>
+      {activeTab === 'extractor' && (
+        <>
       <h1>Invoice Extractor</h1>
       <div className='upload-container'>
         <div className="form-group" style={{ marginBottom: '1rem' }}>
@@ -95,16 +130,16 @@ function App() {
             <option value="purchase_order">Purchase Order</option>
           </select>
         </div>
-        <div className="form-group" style={{ marginBottom: '1rem' }}>
-          <label>Expected Number of Items:</label>
-          <input
-            type="number"
-            min="1"
-            value={expectedItemCount}
-            onChange={e => setExpectedItemCount(e.target.value)}
-            placeholder="e.g. 22"
-          />
-        </div>
+          <div className="form-group" style={{ marginBottom: '1rem' }}>
+            <label>Expected Number of Items:</label>
+            <input
+              type="number"
+              min="1"
+              value={expectedItemCount}
+              onChange={e => setExpectedItemCount(e.target.value)}
+              placeholder="e.g. 22"
+            />
+          </div>
         <div className='file-input-container'>
           <label className="file-input-label">
             <input 
@@ -134,7 +169,6 @@ function App() {
           )}
         </button>
       </div>
-
       {invoiceData && (
         <InvoiceForm
           invoiceData={invoiceData}
@@ -142,6 +176,9 @@ function App() {
           invoiceType={invoiceType}
         />
       )}
+        </>
+      )}
+      {activeTab === 'stock' && <StockMaster />}
     </div>
   );
 }

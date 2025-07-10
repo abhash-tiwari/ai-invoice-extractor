@@ -17,12 +17,15 @@
     "cors": "^2.8.5",
     "dotenv": "^16.5.0",
     "express": "^5.1.0",
+    "fuse.js": "^7.1.0",
     "mongoose": "^8.14.0",
     "multer": "^1.4.5-lts.2",
     "pdf-parse": "^1.1.1",
+    "pdf2table": "^0.0.2",
     "tesseract.js": "^5.0.0"
   },
   "devDependencies": {
     "jest": "^29.7.0"
-  }
+  },
+  "README": "\n# Environment Variables for Atlas Vector Index\nAdd the following to your .env file in backend/:\n\nATLAS_PUBLIC_KEY=your_atlas_public_key\nATLAS_PRIVATE_KEY=your_atlas_private_key\nATLAS_PROJECT_ID=your_atlas_project_id\nATLAS_CLUSTER_NAME=your_atlas_cluster_name\n\n"
 }
