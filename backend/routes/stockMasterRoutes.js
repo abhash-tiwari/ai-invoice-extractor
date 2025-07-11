@@ -44,6 +44,7 @@ async function pdfBufferToCSV(buffer) {
 
 // Add new stock master items (bulk insert)
 router.post('/add', async (req, res) => {
+  let codes = [];
   try {
     let items = req.body.items; // Expecting an array of { itemCode, name, description, matchStatus }
     console.log('Received items to add:', items);
@@ -52,11 +53,11 @@ router.post('/add', async (req, res) => {
       return res.status(400).json({ error: 'No items provided' });
     }
 
-    // Remove or comment out the matchStatus filter in the /add route
-    // if (items[0] && items[0].matchStatus !== undefined) {
-    //   items = items.filter(item => item.matchStatus === 'unique' || item.matchStatus === 'suggested');
-    //   console.log('Filtered to unique/suggested items:', items);
-    // }
+    // Only keep items with matchStatus 'unmatched' or 'suggested' (if matchStatus exists)
+    if (items[0] && items[0].matchStatus !== undefined) {
+      items = items.filter(item => item.matchStatus === 'unmatched' || item.matchStatus === 'suggested');
+      console.log('Filtered to unmatched/suggested items:', items);
+    }
 
     // Deduplicate by itemCode (keep first occurrence)
     const seenCodes = new Set();
@@ -69,8 +70,7 @@ router.post('/add', async (req, res) => {
     });
     console.log('Deduplicated items:', items);
 
-    // Check which itemCodes already exist in DB
-    const codes = items.map(item => item.itemCode.toLowerCase());
+    codes = items.map(item => item.itemCode.toLowerCase());
     const existing = await StockMasterItem.find({ itemCode: { $in: codes } });
     const existingCodes = new Set(existing.map(item => item.itemCode.toLowerCase()));
     const toInsert = items.filter(item => !existingCodes.has(item.itemCode.toLowerCase()));
@@ -104,6 +104,15 @@ router.post('/add', async (req, res) => {
       return res.json({ success: true, inserted: result.length });
     }
   } catch (err) {
+    // If error is a duplicate key error, respond as if those items were skipped
+    if (err.code === 11000 || (err.message && err.message.includes('duplicate key'))) {
+      return res.status(207).json({
+        success: true,
+        inserted: 0,
+        skipped: codes || [],
+        message: 'Some items were not added because their itemCode already exists.'
+      });
+    }
     console.error('Error in /add:', err);
     res.status(500).json({ error: err.message, stack: err.stack });
   }

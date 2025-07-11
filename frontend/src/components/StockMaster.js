@@ -10,7 +10,6 @@ const StockMaster = () => {
   const [extractedText, setExtractedText] = useState('');
   const [pdfFile, setPdfFile] = useState(null);
   const [saving, setSaving] = useState(false);
-  const [keepFlags, setKeepFlags] = useState([]);
 
   useEffect(() => {
     fetchMasterItems();
@@ -42,7 +41,6 @@ const StockMaster = () => {
     });
     setExtractedItems(res.data.items);
     setExtractedText(res.data.extractedText);
-    setKeepFlags(res.data.items.map(() => true));
     setExtractModalOpen(true);
   };
 
@@ -53,15 +51,10 @@ const StockMaster = () => {
     );
   };
 
-  const handleKeepToggle = (idx) => {
-    setKeepFlags(flags => flags.map((f, i) => i === idx ? !f : f));
-  };
-
   // Save reviewed items to DB
   const handleSaveExtracted = async () => {
     setSaving(true);
-    const itemsToSave = extractedItems.filter((_, idx) => keepFlags[idx]);
-    await axios.post('/api/stockmasteritems/add', { items: itemsToSave });
+    await axios.post('/api/stockmasteritems/add', { items: extractedItems });
     setSaving(false);
     setExtractModalOpen(false);
     setPdfFile(null);
@@ -110,7 +103,7 @@ const StockMaster = () => {
             <h3>Review Extracted Items</h3>
             <div style={{ maxHeight: 400, overflowY: 'auto' }}>
               {extractedItems.map((item, idx) => (
-                <div key={idx} style={{ marginBottom: 12, borderBottom: '1px solid #ccc', paddingBottom: 8, background: keepFlags[idx] ? '#eaffea' : '#ffeaea' }}>
+                <div key={idx} style={{ marginBottom: 12, borderBottom: '1px solid #ccc', paddingBottom: 8, background: '#eaffea' }}>
                   <label>
                     Description:
                     <input
@@ -156,9 +149,6 @@ const StockMaster = () => {
                       <span> | <b>Matched Item:</b> {item.matchedMasterItem.itemCode} - {item.matchedMasterItem.description}</span>
                     )}
                   </div>
-                  <button onClick={() => handleKeepToggle(idx)} style={{ marginTop: 6 }}>
-                    {keepFlags[idx] ? 'Remove' : 'Keep'}
-                  </button>
                 </div>
               ))}
             </div>
