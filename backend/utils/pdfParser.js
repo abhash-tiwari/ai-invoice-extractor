@@ -87,6 +87,8 @@ const parsePDF = async (buffer) => {
     );
     // Combine markdown from all pages
     const pages = ocrRes.data.pages || [];
+    console.log('[Mistral OCR] Number of pages returned:', pages.length);
+    console.log('[Mistral OCR] Full pages array:', JSON.stringify(pages, null, 2));
     const text = pages.map(page => page.markdown).join('\n');
     console.log('[Mistral OCR] Text extracted from Mistral OCR. Preview:');
     console.log(text.slice(0, 500)); // Log first 500 chars as a preview

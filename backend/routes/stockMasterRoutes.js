@@ -230,7 +230,16 @@ router.post('/extract', upload.single('file'), async (req, res) => {
       }
     }
 
-    res.json({ items: matchResults, extractedText: csvTable });
+    // Fix: Only spread root-level fields, not the items array, into the response
+    let rootFields = {};
+    if (extractedItems && typeof extractedItems === 'object' && !Array.isArray(extractedItems)) {
+      Object.entries(extractedItems).forEach(([key, value]) => {
+        if (!Array.isArray(value) && typeof value !== 'object') {
+          rootFields[key] = value;
+        }
+      });
+    }
+    res.json({ ...rootFields, items: matchResults, extractedText: csvTable });
   } catch (err) {
     console.error('StockMaster /extract error:', err);
     res.status(500).json({ error: err.message, stack: err.stack });
@@ -239,19 +248,10 @@ router.post('/extract', upload.single('file'), async (req, res) => {
 
 // Real AI extraction function for stock master items using OpenAI GPT-4 via axios
 async function aiExtractStockMasterItems(csvTable) {
-  const prompt = `\nExtract the following fields from the given csv it can be anything like an invoice or a purchase order and return JSON without any explanation:
-- itemsTable (extract ALL items, no matter how many)
-
-Each item in itemsOrdered MUST have these EXACT field names:
-{
-  "itemCode": "look for item code",
-  "description": "description",
-  "netPrice": "look for price",
-  "poDliveryDate": "delivery date",
-  "name": "item name",
-}
-
-Give pure JSON only, no backticks, no markdown.\n${csvTable}\n`;
+  // Add a clear page break marker if not already present
+  const pages = csvTable.split(/\n(?=\| )/g); // crude split on markdown table start
+  const csvWithPageBreaks = pages.join('\n--- PAGE BREAK ---\n');
+  const prompt = `\nExtract the following fields from the given csv (it can be an invoice, purchase order, or stock master) and return JSON without any explanation.\n\nIMPORTANT: The following text may contain multiple tables across multiple pages. Extract ALL items from ALL tables, across ALL pages. Do not stop at the first table or page. If a table is split across pages, merge the rows into a single list.\n\nExtract these fields at the root level:\n- vendor\n- purchaseOrderNo\n- purchaseOrderDate\n- vendorNo\n- currency\n- customerContact\n- buyerName\n- buyerEmail\n- buyerTelephone\n- otherReference\n- contractOrOfferNo\n- customerProjRef\n- termsOfPayment\n- incoterm\n- incotermLocation\n- deliveryDate\n- goodsMarked\n- billTo\n- shipTo\n- vendorContact\n- vendorEmail\n- vendorTelephone\n- vendorName\n- taxId\n- totalNetValue\n- additionalInformation\n- allowanceAmount\n- allowances\n- projectNumber\n- salesOrderNr\n- salesOrderItemNr\n- itemsTable (extract ALL items, no matter how many)\n\nEach item in itemsTable MUST have these EXACT field names:\n{\n  "itemCode": "item code or reference",\n  "name": "item name",\n  "description": "item description",\n  "materialNumber": "material number if available",\n  "materialDescription": "material description if available",\n  "quantity": "quantity as a number",\n  "quantityUnit": "unit of quantity (e.g., pieces, kg, etc.)",\n  "pricePerUnit": "price per unit with currency if mentioned",\n  "netPrice": "net price with currency if mentioned",\n  "totalWeight": "total/net/gross weight if mentioned",\n  "totalPrice": "total price/amount with currency if mentioned",\n  "poDeliveryDate": "delivery date if available",\n  "hsnCode": "HSN code if available",\n  "gstRate": "GST rate/percentage if available",\n  "alias": "any alias or alternate name for the item",\n  "mfgDate": "manufacturing date if available",\n  "expiryDate": "expiry date if available"\n}\n\nIMPORTANT: For every item, always include all the above fields. If a value is missing, set it to null or an empty string. Do not skip or merge rows, even if other fields are similar. For all price-related fields, include the currency if it's mentioned. Look for currency symbols (€, $, ₹, etc.) or currency codes (EUR, USD, INR, etc.) near the price values. If the same currency is used throughout, use that currency for all price fields.\n\nGive pure JSON only, no backticks, no markdown.\n${csvWithPageBreaks}\n`;
   console.log('Sending prompt to OpenAI (axios). Prompt length:', prompt.length);
   const response = await axios.post(
     'https://api.openai.com/v1/chat/completions',
