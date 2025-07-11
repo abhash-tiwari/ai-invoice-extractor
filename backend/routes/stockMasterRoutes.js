@@ -13,45 +13,96 @@ const pdfParse = require('pdf-parse');
 // );
 // You may need to implement or import your AI extraction logic here
 
+// async function pdfBufferToCSV(buffer) {
+//   return new Promise((resolve, reject) => {
+//     pdf2table.parse(buffer, async (err, rows) => {
+//       if (err || !rows || rows.length === 0) {
+//         // Fallback to full text extraction using pdf-parse
+//         try {
+//           const data = await pdfParse(buffer);
+//           resolve(data.text); // Return plain text
+//         } catch (textErr) {
+//           reject(textErr);
+//         }
+//       } else {
+//         // Convert all rows to CSV
+//         const csv = rows.map(row => row.map(cell => `"${cell.replace(/"/g, '""')}"`).join(',')).join('\n');
+//         resolve(csv);
+//       }
+//     });
+//   });
+// }
+
+// --- New Mistral OCR logic for table extraction ---
 async function pdfBufferToCSV(buffer) {
-  return new Promise((resolve, reject) => {
-    pdf2table.parse(buffer, async (err, rows) => {
-      if (err || !rows || rows.length === 0) {
-        // Fallback to full text extraction using pdf-parse
-        try {
-          const data = await pdfParse(buffer);
-          resolve(data.text); // Return plain text
-        } catch (textErr) {
-          reject(textErr);
-        }
-      } else {
-        // Convert all rows to CSV
-        const csv = rows.map(row => row.map(cell => `"${cell.replace(/"/g, '""')}"`).join(',')).join('\n');
-        resolve(csv);
-      }
-    });
-  });
+  console.log('[Mistral OCR] Using Mistral OCR for table extraction...');
+  const text = await parsePDF(buffer);
+  console.log('[Mistral OCR] Extracted text preview:', text.slice(0, 500));
+  // You may want to implement table parsing from markdown here if needed
+  return text;
 }
 
 // Add new stock master items (bulk insert)
 router.post('/add', async (req, res) => {
   try {
-    const items = req.body.items; // Expecting an array of { itemCode, name, description }
+    let items = req.body.items; // Expecting an array of { itemCode, name, description, matchStatus }
     console.log('Received items to add:', items);
     if (!Array.isArray(items) || items.length === 0) {
       console.log('No items provided');
       return res.status(400).json({ error: 'No items provided' });
     }
-    const result = await StockMasterItem.insertMany(items);
-    console.log('Successfully inserted items:', result.length);
-    // Trigger embedding refresh in Python service
-    try {
-      await axios.post('http://127.0.0.1:8000/refresh');
-      console.log('Triggered /refresh for embeddings');
-    } catch (refreshErr) {
-      console.error('Failed to trigger /refresh:', refreshErr.message);
+
+    // Remove or comment out the matchStatus filter in the /add route
+    // if (items[0] && items[0].matchStatus !== undefined) {
+    //   items = items.filter(item => item.matchStatus === 'unique' || item.matchStatus === 'suggested');
+    //   console.log('Filtered to unique/suggested items:', items);
+    // }
+
+    // Deduplicate by itemCode (keep first occurrence)
+    const seenCodes = new Set();
+    items = items.filter(item => {
+      if (!item.itemCode) return false;
+      const code = item.itemCode.toLowerCase();
+      if (seenCodes.has(code)) return false;
+      seenCodes.add(code);
+      return true;
+    });
+    console.log('Deduplicated items:', items);
+
+    // Check which itemCodes already exist in DB
+    const codes = items.map(item => item.itemCode.toLowerCase());
+    const existing = await StockMasterItem.find({ itemCode: { $in: codes } });
+    const existingCodes = new Set(existing.map(item => item.itemCode.toLowerCase()));
+    const toInsert = items.filter(item => !existingCodes.has(item.itemCode.toLowerCase()));
+    const skipped = items.filter(item => existingCodes.has(item.itemCode.toLowerCase()));
+    console.log('To insert:', toInsert);
+    console.log('Skipped (already exist):', skipped);
+
+    // Insert only new items
+    let result = [];
+    if (toInsert.length > 0) {
+      result = await StockMasterItem.insertMany(toInsert);
+      console.log('Successfully inserted items:', result.length);
+      // Trigger embedding refresh in Python service
+      try {
+        await axios.post('http://127.0.0.1:8000/refresh');
+        console.log('Triggered /refresh for embeddings');
+      } catch (refreshErr) {
+        console.error('Failed to trigger /refresh:', refreshErr.message);
+      }
     }
-    res.json({ success: true, inserted: result.length });
+
+    // Respond with inserted count and skipped codes
+    if (skipped.length > 0) {
+      return res.status(207).json({
+        success: true,
+        inserted: result.length,
+        skipped: skipped.map(item => item.itemCode),
+        message: 'Some items were not added because their itemCode already exists.'
+      });
+    } else {
+      return res.json({ success: true, inserted: result.length });
+    }
   } catch (err) {
     console.error('Error in /add:', err);
     res.status(500).json({ error: err.message, stack: err.stack });
