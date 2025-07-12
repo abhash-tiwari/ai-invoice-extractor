@@ -5,8 +5,8 @@ const multer = require('multer');
 const upload = multer();
 const parsePDF = require('../utils/pdfParser');
 const axios = require('axios');
-const pdf2table = require('pdf2table');
-const pdfParse = require('pdf-parse');
+// const pdf2table = require('pdf2table');
+// const pdfParse = require('pdf-parse');
 // const { Configuration, OpenAIApi } = require('openai');
 // const openai = new OpenAIApi(
 //   new Configuration({ apiKey: process.env.OPEN_API_KEY })
