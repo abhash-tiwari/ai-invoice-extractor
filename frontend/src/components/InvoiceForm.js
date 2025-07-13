@@ -96,19 +96,90 @@ const PURCHASE_ORDER_FIELDS = [
 
 const PURCHASE_ORDER_ITEMS_COLUMNS = [
   { label: 'Position', key: 'position' },
-  { label: 'Material Number', key: 'materialNumber' },
-  { label: 'Material Description', key: 'materialDescription' },
-  { label: 'Supplier Part Number', key: 'supplierPartNumber' },
-  { label: 'Quantity', key: 'quantity' },
-  { label: 'Unit', key: 'unit' },
-  { label: 'Price Per Unit', key: 'pricePerUnit' },
-  { label: 'Net Value', key: 'netValue' },
-  { label: 'Delivery Date', key: 'deliveryDate' },
-  // { label: 'Version', key: 'version' },
-  { label: 'Price Base', key: 'priceBase' },
-  { label: 'Price Base Version', key: 'priceBaseVersion' },
+  { label: 'Line Number', key: 'lineNo' },
+  { label: 'Item Code', key: 'itemCode' },
+  { label: 'Name', key: 'name' },
   { label: 'Description', key: 'description' },
+  { label: 'Quantity', key: 'quantity' },
+  { label: 'Unit', key: 'quantityUnit' },
+  { label: 'Price Per Unit', key: 'pricePerUnit' },
+  { label: 'Net Price', key: 'netPrice' },
+  { label: 'Total Weight', key: 'totalWeight' },
+  { label: 'Total Price', key: 'totalPrice' },
+  { label: 'PO Delivery Date', key: 'poDeliveryDate' },
+  { label: 'HSN Code', key: 'hsnCode' },
+  { label: 'GST Rate', key: 'gstRate' },
+  { label: 'Alias', key: 'alias' },
+  { label: 'Mfg Date', key: 'mfgDate' },
+  { label: 'Expiry Date', key: 'expiryDate' }
 ];
+
+// NEW: PO Master Match Status Component
+const POMasterMatchStatus = ({ item }) => {
+  const getMatchStatusColor = (status, confidence) => {
+    if (status === 'already_exists') return '#dc3545'; // red
+    if (status === 'matched' && confidence < 1) return '#ffc107'; // yellow
+    if (status === 'suggested') return '#ffc107'; // yellow
+    if (status === 'unmatched') return '#28a745'; // green
+    if (status === 'matched' && confidence === 1) return '#dc3545'; // red (already exists)
+    return '#6c757d';
+  };
+
+  const getMatchStatusText = (status) => {
+    switch (status) {
+      case 'matched': return ' Matched';
+      case 'suggested': return '⚠️ Suggested';
+      case 'already_exists': return '🔄 Already Exists';
+      case 'unmatched': return ' Unmatched';
+      default: return '❓ Unknown';
+    }
+  };
+
+  if (!item.matchStatus) {
+    return null;
+  }
+
+  return (
+    <div className="po-match-status" style={{
+      marginTop: '8px',
+      padding: '8px',
+      borderRadius: '4px',
+      backgroundColor: getMatchStatusColor(item.matchStatus, item.confidence) + '20',
+      border: `1px solid ${getMatchStatusColor(item.matchStatus, item.confidence)}`,
+      fontSize: '12px'
+    }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+        <span style={{ fontWeight: 'bold', color: getMatchStatusColor(item.matchStatus, item.confidence) }}>
+          {getMatchStatusText(item.matchStatus)}
+        </span>
+        {item.confidence && (
+          <span style={{ color: '#666' }}>
+            Confidence: {(item.confidence * 100).toFixed(1)}%
+          </span>
+        )}
+      </div>
+      {item.method && (
+        <div style={{ color: '#666', fontSize: '11px' }}>
+          Method: {item.method === 'vector' ? 'Vector Search' : item.method === 'fuzzy' ? 'Fuzzy Match' : item.method}
+        </div>
+      )}
+      {/* Matched Item Section */}
+      {item.matchStatus === 'already_exists' && item.matchedPOItem && (
+        <div style={{ marginTop: '4px', padding: '4px', backgroundColor: '#f8f9fa', borderRadius: '2px', fontSize: '11px' }}>
+          <div><strong>Matched Item:</strong></div>
+          <div>Item Code: {item.matchedPOItem.itemCode || 'N/A'}</div>
+        </div>
+      )}
+      {item.matchStatus !== 'already_exists' && item.matchedPOItem && (
+        <div style={{ marginTop: '4px', padding: '4px', backgroundColor: '#f8f9fa', borderRadius: '2px', fontSize: '11px' }}>
+          <div><strong>Matched Item:</strong></div>
+          <div>Name: {item.matchedPOItem.name || 'N/A'}</div>
+          <div>Description: {item.matchedPOItem.description || 'N/A'}</div>
+        </div>
+      )}
+    </div>
+  );
+};
 
 // Helper to parse various date formats to YYYY-MM-DD
 function parseToDateInputFormat(dateStr) {
@@ -140,49 +211,35 @@ function parseToDateInputFormat(dateStr) {
   return '';
 }
 
+// Helper to render address fields that may be string, object, or array
+function renderAddressField(value) {
+  if (!value) return <span style={{ color: '#aaa' }}>Not captured</span>;
+  if (typeof value === 'string') {
+    return <span>{value}</span>;
+  }
+  if (Array.isArray(value)) {
+    return (
+      <ul>
+        {value.map((v, i) => <li key={i}>{typeof v === 'string' ? v : JSON.stringify(v)}</li>)}
+      </ul>
+    );
+  }
+  if (typeof value === 'object') {
+    return (
+      <div>
+        {Object.entries(value).map(([k, v]) => (
+          <div key={k}><strong>{k}:</strong> {v}</div>
+        ))}
+      </div>
+    );
+  }
+  return <span>{JSON.stringify(value)}</span>;
+}
+
 const InvoiceForm = ({ invoiceData, onSave, invoiceType: propInvoiceType }) => {
-  const [formData, setFormData] = useState(invoiceData || {
-    invoiceType: propInvoiceType || 'regular',
-    poNumber: '',
-    invoiceNumber: '',
-    seller: '',
-    buyer: '',
-    consignee: '',
-    address: '',
-    notifyParty: '',
-    shippingMethod: '',
-    incoterm: '',
-    portOfDischarge: '',
-    bankAccountHolder: '',
-    bankName: '',
-    bankAccountNumber: '',
-    bankIfscCode: '',
-    bankSwiftCode: '',
-    deliveryLocation: '',
-    invoiceDate: '',
-    paymentTerms: '',
-    itemsPurchased: [],
-    subtotal: '',
-    taxes: '',
-    totalAmount: '',
-    currency: '',
-    exporter: '',
-    buyersOrderNo: '',
-    buyersOrderDate: '',
-    vendorNumber: '',
-    vendorNo: '',
-    containerNo: '',
-    vesselFlightNo: '',
-    countryOfOrigin: '',
-    countryOfDestination: '',
-    portOfLoading: '',
-    placeOfDelivery: '',
-    authorisedSignatory: '',
-    totalQty: '',
-    totalNetWeight: '',
-    totalGrossWeight: '',
-    packingListItems: [],
-    itemsOrdered: [],
+  const [formData, setFormData] = useState({
+    ...(invoiceData || {}),
+    invoiceType: (invoiceData && invoiceData.invoiceType) || propInvoiceType || 'regular',
   });
 
   // Sync packingListItems with itemsPurchased for packing_list invoices
@@ -385,6 +442,11 @@ const InvoiceForm = ({ invoiceData, onSave, invoiceType: propInvoiceType }) => {
   const sortedPackingListItems = (formData.packingListItems || []).slice().sort(
     (a, b) => Number(a.serialNumber) - Number(b.serialNumber)
   );
+
+  // When user clicks save, always include invoiceType
+  const handleSaveClick = () => {
+    onSave({ ...formData, invoiceType: formData.invoiceType || propInvoiceType || 'regular' });
+  };
 
   return (
     <div className="invoice-form">
@@ -647,6 +709,8 @@ const InvoiceForm = ({ invoiceData, onSave, invoiceType: propInvoiceType }) => {
                           }}
                           placeholder="Not captured"
                         />
+                        {/* NEW: Show PO Master Match Status */}
+                        {col.key === 'itemCode' && <POMasterMatchStatus item={item} />}
                       </td>
                     ))}
                     <td>
@@ -685,7 +749,7 @@ const InvoiceForm = ({ invoiceData, onSave, invoiceType: propInvoiceType }) => {
       <div className="verification-note">
         <p>⚠️ Please verify all fields before saving. Make sure all information is accurate and complete.</p>
       </div>
-      <button className="save-button" onClick={handleSave}>
+      <button className="save-button" onClick={handleSaveClick}>
         Save Changes
       </button>
       <style jsx>{`
@@ -726,6 +790,29 @@ const InvoiceForm = ({ invoiceData, onSave, invoiceType: propInvoiceType }) => {
         }
         .packing-list-table th {
           background: #f5f5f5;
+        }
+        .po-match-status {
+          margin-top: 8px;
+          padding: 8px;
+          border-radius: 4px;
+          font-size: 12px;
+          max-width: 200px;
+        }
+        .po-match-status input {
+          margin-bottom: 8px;
+        }
+        .po-match-status .match-details {
+          margin-top: 4px;
+          padding: 4px;
+          background-color: #f8f9fa;
+          border-radius: 2px;
+          font-size: 11px;
+        }
+        .po-match-status .match-details div {
+          margin-bottom: 2px;
+        }
+        .po-match-status .match-details strong {
+          color: #333;
         }
       `}</style>
     </div>

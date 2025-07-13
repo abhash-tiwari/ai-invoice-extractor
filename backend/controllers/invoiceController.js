@@ -203,17 +203,28 @@ ${expectedItemCount ? `There are exactly ${expectedItemCount} items in the table
 Each item in itemsOrdered MUST have these EXACT field names:
 {
   "position": "item position number do not give serial number in position",
-  "materialNumber": "material number",
-  "materialDescription": "material description",
+  "lineNo": "include line number in which column from top the item has placed do not give po line no.",
+  "itemCode": "item code is important always include",
+  "name": "name or description of the item",
+  "description": "item description",
   "quantity": "quantity as a number",
-  "unit": "unit of quantity (e.g., PCE, PC, etc.)",
+  "quantityUnit": "unit of quantity (e.g., PCE, PC, etc.)",
   "pricePerUnit": "price per unit with currency if mentioned",
-  "netValue": "net value with currency if mentioned",
-  "deliveryDate": "delivery date",
-  "priceBase": "price base",
-  "priceBaseVersion": "price base version",
-  "description": "description"
+  "netPrice": "net price with currency if mentioned",
+  "totalWeight": "total weight with unit if mentioned",
+  "totalPrice": "total price with currency if mentioned",
+  "poDeliveryDate": "PO delivery date if available",
+  "hsnCode": "HSN code if available",
+  "gstRate": "GST rate if available",
+  "alias": "alias if available",
+  "mfgDate": "manufacturing date if available",
+  "expiryDate": "expiry date if available"
 }
+
+IMPORTANT: For each item, extract all fields as they appear in the table or document. If a value is missing, set it to null or an empty string. Do not infer or copy values from other rows. Map table columns to the above standard field names, even if the column header is different. If a field is not present, leave it blank or null.
+
+IMPORTANT: Purchase order tables may have different column headers for the same data. For each item, map the table columns to the following standard field names, even if the column header is different:
+- "item code", "hsn code", "material number", "hs code" → itemCode.
 
 Give pure JSON only, no backticks, no markdown.
 
@@ -370,6 +381,122 @@ ${extractedText}
       }
     }
 
+    // NEW: PO Master Matching for Purchase Orders
+    if (invoiceType === 'purchase_order' && Array.isArray(parsedData.itemsOrdered)) {
+      console.log('Starting PO Master matching for', parsedData.itemsOrdered.length, 'items...');
+      
+      // Fetch all existing PO items for matching
+      const allPOItems = await PurchaseOrder.find({});
+      const poItemsByItemCode = {};
+      const allPOItemTexts = [];
+      
+      // Extract all items from all POs and create lookup
+      allPOItems.forEach(po => {
+        if (po.itemsOrdered && Array.isArray(po.itemsOrdered)) {
+          po.itemsOrdered.forEach(item => {
+            if (item.itemCode) {
+              poItemsByItemCode[item.itemCode.toLowerCase()] = item;
+            }
+            // Create text for fuzzy matching
+            const itemText = `${item.itemCode || ''} ${item.name || ''} ${item.description || ''}`.trim();
+            if (itemText) {
+              allPOItemTexts.push({ text: itemText, item: item });
+            }
+          });
+        }
+      });
+
+      console.log(`Found ${Object.keys(poItemsByItemCode).length} unique item codes in PO database`);
+      console.log(`Found ${allPOItemTexts.length} items for fuzzy matching`);
+
+      // Match each extracted item
+      const matchedItems = [];
+      const itemsToMatch = [];
+
+      parsedData.itemsOrdered.forEach((item, idx) => {
+        const code = (item.itemCode || '').toLowerCase();
+        
+        if (code && poItemsByItemCode[code]) {
+          // Exact itemCode match
+          matchedItems.push({
+            ...item,
+            matchStatus: 'already_exists',
+            confidence: 1.0,
+            method: 'itemCode',
+            matchedPOItem: poItemsByItemCode[code],
+          });
+        } else {
+          // No itemCode match, add to match queue
+          itemsToMatch.push({ idx, item });
+          matchedItems.push(null); // placeholder
+        }
+      });
+
+      // Call Python /match for unmatched items
+      if (itemsToMatch.length > 0) {
+        const descriptions = itemsToMatch.map(i => `${i.item.itemCode || ''} ${i.item.name || ''} ${i.item.description || ''}`.trim());
+        
+        try {
+          console.log('Calling Python /match service for', descriptions.length, 'items...');
+          const pyRes = await axios.post('http://127.0.0.1:8000/match-po', {
+            descriptions,
+            top_n: 1
+          });
+          
+          pyRes.data.forEach((result, i) => {
+            const idx = itemsToMatch[i].idx;
+            const match = result.matches && result.matches[0];
+            let matchStatus = 'unmatched';
+            let confidence = 0;
+            let method = result.method;
+            let matchedPOItem = null;
+            
+            if (match && match.score >= 0.8) {
+              matchStatus = 'matched';
+              confidence = match.score;
+              matchedPOItem = match.item;
+            } else if (match && match.score >= 0.6) {
+              matchStatus = 'suggested';
+              confidence = match.score;
+              matchedPOItem = match.item;
+            }
+            
+            matchedItems[idx] = {
+              ...itemsToMatch[i].item,
+              matchStatus,
+              confidence,
+              method,
+              matchedPOItem,
+            };
+          });
+        } catch (error) {
+          console.error('Error calling Python /match service:', error.message);
+          // Fallback: mark all as unmatched
+          itemsToMatch.forEach(({ idx }, i) => {
+            matchedItems[idx] = {
+              ...itemsToMatch[i].item,
+              matchStatus: 'unmatched',
+              confidence: 0,
+              method: 'error',
+              matchedPOItem: null,
+            };
+          });
+        }
+      }
+
+      // Update parsedData with matched items
+      parsedData.itemsOrdered = matchedItems;
+      console.log('PO Master matching completed');
+    }
+
+    // Do NOT save to DB for purchase_order, just return extracted data
+    if (invoiceType === 'purchase_order') {
+      return res.status(200).json({
+        message: 'Purchase order extracted and matched',
+        data: parsedData
+      });
+    }
+
     let savedDoc;
     if (invoiceType === 'packing_list') {
       const packingListData = {
@@ -410,48 +537,6 @@ ${extractedText}
       console.log('Creating packing list in database...');
       savedDoc = await PackingList.create(packingListData);
       console.log('Packing list created successfully');
-    } else if (invoiceType === 'purchase_order') {
-      const purchaseOrderData = {
-        vendor: parsedData.vendor || null,
-        purchaseOrderNo: parsedData.purchaseOrderNo || null,
-        purchaseOrderDate: parsedData.purchaseOrderDate || null,
-        vendorNo: parsedData.vendorNo || null,
-        currency: parsedData.currency || null,
-        customerContact: typeof parsedData.customerContact === 'object' ? parsedData.customerContact : parsedData.customerContact ? { name: parsedData.customerContact } : {},
-        buyerName: parsedData.buyerName || null,
-        buyerEmail: parsedData.buyerEmail || null,
-        buyerTelephone: parsedData.buyerTelephone || null,
-        otherReference: parsedData.otherReference || null,
-        contractOrOfferNo: parsedData.contractOrOfferNo || null,
-        customerProjRef: parsedData.customerProjRef || null,
-        termsOfPayment: parsedData.termsOfPayment || null,
-        incoterm: parsedData.incoterm || null,
-        incotermLocation: parsedData.incotermLocation || null,
-        deliveryDate: parsedData.deliveryDate || null,
-        goodsMarked: parsedData.goodsMarked || null,
-        billTo: parsedData.billTo || null,
-        shipTo: parsedData.shipTo || null,
-        vendorContact: parsedData.vendorContact || null,
-        vendorEmail: parsedData.vendorEmail || null,
-        vendorTelephone: parsedData.vendorTelephone || null,
-        vendorName: parsedData.vendorName || null,
-        taxId: parsedData.taxId || null,
-        totalNetValue: parsedData.totalNetValue || null,
-        additionalInformation: parsedData.additionalInformation || null,
-        allowanceAmount: parsedData.allowanceAmount || null,
-        allowances: parsedData.allowances || null,
-        projectNumber: parsedData.projectNumber || null,
-        salesOrderNr: parsedData.salesOrderNr || null,
-        salesOrderItemNr: parsedData.salesOrderItemNr || null,
-        itemsOrdered: parsedData.itemsOrdered || [],
-        invoiceType: invoiceType,
-        fileType: req.file.mimetype,
-        originalFileName: req.file.originalname,
-        extractedText: extractedText
-      };
-      console.log('Creating purchase order in database...');
-      savedDoc = await PurchaseOrder.create(purchaseOrderData);
-      console.log('Purchase order created successfully');
     } else {
     const invoiceData = {
       poNumber: parsedData.poNumber || null,
@@ -567,18 +652,47 @@ const savePackingList = async (req, res) => {
 const savePurchaseOrder = async (req, res) => {
   try {
     const { _id, ...updateData } = req.body;
+    let items = updateData.itemsOrdered || [];
+    const seenCodes = new Set();
+    const itemsToSave = [];
+    for (const item of items) {
+      const code = (item.itemCode || '').trim().toLowerCase();
+      if (item.matchStatus !== 'already_exists' && code && !seenCodes.has(code)) {
+        seenCodes.add(code);
+        itemsToSave.push(item);
+      }
+    }
+    updateData.itemsOrdered = itemsToSave;
+
+    let savedDoc;
     if (!_id) {
-      return res.status(400).json({ message: 'Purchase Order ID is required' });
+      // Create new purchase order
+      savedDoc = await PurchaseOrder.create(updateData);
+    } else {
+      // Update existing purchase order
+      savedDoc = await PurchaseOrder.findByIdAndUpdate(
+        _id,
+        updateData,
+        { new: true, runValidators: true }
+      );
+      if (!savedDoc) {
+        return res.status(404).json({ message: 'Purchase Order not found' });
+      }
     }
-    const updatedPurchaseOrder = await PurchaseOrder.findByIdAndUpdate(
-      _id,
-      updateData,
-      { new: true, runValidators: true }
-    );
-    if (!updatedPurchaseOrder) {
-      return res.status(404).json({ message: 'Purchase Order not found' });
+
+    // Automatically trigger embedding refresh for PO items
+    try {
+      await axios.post('http://127.0.0.1:8000/refresh-po');
+      console.log('Triggered /refresh-po for PO embeddings');
+    } catch (refreshErr) {
+      console.error('Failed to trigger /refresh-po:', refreshErr.message);
     }
-    res.status(200).json({ message: 'Purchase Order updated successfully', data: updatedPurchaseOrder });
+
+    return res.status(200).json({
+      message: `Purchase Order saved. ${itemsToSave.length} items saved, ${items.length - itemsToSave.length} items skipped (already exist).`,
+      data: savedDoc,
+      skipped: items.filter(item => item.matchStatus === 'already_exists').map(item => item.itemCode)
+    });
   } catch (error) {
     console.error('Error saving purchase order:', error.message);
     res.status(500).json({ message: 'Server Error' });

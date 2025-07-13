@@ -69,12 +69,14 @@ function App() {
   };
 
   const handleSave = async (updatedData) => {
+    console.log('handleSave called with:', updatedData);
     let url = '/api/invoices/save';
     if (updatedData.invoiceType === 'packing_list') {
       url = '/api/invoices/save-packing-list';
     } else if (updatedData.invoiceType === 'purchase_order') {
       url = '/api/invoices/save-purchase-order';
     }
+    console.log('Saving to URL:', url);
     try {
       await axios.post(url, updatedData);
       alert('Invoice saved successfully!');
