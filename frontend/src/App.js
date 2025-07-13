@@ -4,6 +4,8 @@ import InvoiceForm from './components/InvoiceForm';
 import './components/InvoiceForm.css';
 import './App.css';
 import StockMaster from './components/StockMaster';
+import InvoiceSummary from './components/InvoiceSummary';
+import PurchaseOrderItemsTable from './components/PurchaseOrderItemsTable';
 
 function App() {
   const [file, setFile] = useState(null);
@@ -87,6 +89,14 @@ function App() {
     }
   };
 
+  // Handler for summary field changes
+  const handleSummaryFieldChange = (field, value) => {
+    setInvoiceData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
   return (
     <div style={{ padding: '2rem' }}>
       <div style={{ marginBottom: '1.5rem' }}>
@@ -122,62 +132,177 @@ function App() {
       </div>
       {activeTab === 'extractor' && (
         <>
-      <h1>Invoice Extractor</h1>
-      <div className='upload-container'>
-        <div className="form-group" style={{ marginBottom: '1rem' }}>
-          <label>Invoice Type:</label>
-          <select value={invoiceType} onChange={e => setInvoiceType(e.target.value)}>
-            <option value="regular">Regular Invoice</option>
-            <option value="packing_list">Packing List</option>
-            <option value="purchase_order">Purchase Order</option>
-          </select>
-        </div>
-          <div className="form-group" style={{ marginBottom: '1rem' }}>
-            <label>Expected Number of Items:</label>
-            <input
-              type="number"
-              min="1"
-              value={expectedItemCount}
-              onChange={e => setExpectedItemCount(e.target.value)}
-              placeholder="e.g. 22"
-            />
+          <h1>Invoice Extractor</h1>
+          <div className='upload-container'>
+            <div className="form-group" style={{ marginBottom: '1rem' }}>
+              <label>Invoice Type:</label>
+              <select value={invoiceType} onChange={e => setInvoiceType(e.target.value)}>
+                <option value="regular">Regular Invoice</option>
+                <option value="packing_list">Packing List</option>
+                <option value="purchase_order">Purchase Order</option>
+              </select>
+            </div>
+              <div className="form-group" style={{ marginBottom: '1rem' }}>
+                <label>Expected Number of Items:</label>
+                <input
+                  type="number"
+                  min="1"
+                  value={expectedItemCount}
+                  onChange={e => setExpectedItemCount(e.target.value)}
+                  placeholder="e.g. 22"
+                />
+              </div>
+            <div className='file-input-container'>
+              <label className="file-input-label">
+                <input 
+                  type="file" 
+                  onChange={handleFileChange}
+                  accept=".pdf,.jpg,.jpeg,.png"
+                  className="file-input"
+                />
+                <span className="file-input-text">
+                  {fileName || 'Choose PDF or Image file'}
+                </span>
+                <span className="file-input-button">Browse</span>
+              </label>
+            </div>
+            <button 
+              className="upload-button"
+              onClick={handleUpload}
+              disabled={!file || isLoading}
+            >
+              {isLoading ? (
+                <span className="loading-spinner">
+                  <span className="spinner"></span>
+                  Extracting...
+                </span>
+              ) : (
+                'Upload Invoice'
+              )}
+            </button>
           </div>
-        <div className='file-input-container'>
-          <label className="file-input-label">
-            <input 
-              type="file" 
-              onChange={handleFileChange}
-              accept=".pdf,.jpg,.jpeg,.png"
-              className="file-input"
-            />
-            <span className="file-input-text">
-              {fileName || 'Choose PDF or Image file'}
-            </span>
-            <span className="file-input-button">Browse</span>
-          </label>
-        </div>
-        <button 
-          className="upload-button"
-          onClick={handleUpload}
-          disabled={!file || isLoading}
-        >
-          {isLoading ? (
-            <span className="loading-spinner">
-              <span className="spinner"></span>
-              Extracting...
-            </span>
-          ) : (
-            'Upload Invoice'
+          {invoiceData && (
+            invoiceData.purchaseOrderNo || invoiceData.itemsOrdered ? (
+              <>
+                <InvoiceSummary
+                  type="purchase_order"
+                  poNumber={invoiceData.poNumber || invoiceData.purchaseOrderNo || invoiceData.invoiceNumber}
+                  invoiceDate={invoiceData.invoiceDate || invoiceData.purchaseOrderDate}
+                  currency={invoiceData.currency}
+                  subtotal={invoiceData.subtotal}
+                  taxes={invoiceData.taxes}
+                  totalAmount={invoiceData.totalAmount}
+                  seller={invoiceData.seller}
+                  buyer={invoiceData.buyer}
+                  consignee={invoiceData.consignee}
+                  shippingMethod={invoiceData.shippingMethod}
+                  incoterm={invoiceData.incoterm}
+                  portOfDischarge={invoiceData.portOfDischarge}
+                  deliveryLocation={invoiceData.deliveryLocation}
+                  notifyParty={invoiceData.notifyParty}
+                  paymentTerms={invoiceData.paymentTerms}
+                  bankAccountHolder={invoiceData.bankAccountHolder}
+                  bankName={invoiceData.bankName}
+                  bankAccountNumber={invoiceData.bankAccountNumber}
+                  bankSwiftCode={invoiceData.bankSwiftCode}
+                  bankIfscCode={invoiceData.bankIfscCode}
+                  totalItems={(invoiceData.itemsPurchased && invoiceData.itemsPurchased.length) || (invoiceData.itemsOrdered && invoiceData.itemsOrdered.length) || 0}
+                  totalQuantity={((invoiceData.itemsPurchased && invoiceData.itemsPurchased.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0)) || (invoiceData.itemsOrdered && invoiceData.itemsOrdered.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0)) || 0)}
+                  totalWeight={((invoiceData.itemsPurchased && invoiceData.itemsPurchased.reduce((sum, item) => sum + (Number(item.totalWeight) || 0), 0)) || (invoiceData.itemsOrdered && invoiceData.itemsOrdered.reduce((sum, item) => sum + (Number(item.totalWeight) || 0), 0)) || 0)}
+                  totalPrice={((invoiceData.itemsPurchased && invoiceData.itemsPurchased.reduce((sum, item) => sum + (Number(item.totalPrice) || 0), 0)) || (invoiceData.itemsOrdered && invoiceData.itemsOrdered.reduce((sum, item) => sum + (Number(item.totalPrice) || 0), 0)) || 0)}
+                  vendor={invoiceData.vendor}
+                  vendorName={invoiceData.vendorName}
+                  vendorContact={invoiceData.vendorContact}
+                  vendorNo={invoiceData.vendorNo}
+                  vendorEmail={invoiceData.vendorEmail}
+                  vendorTelephone={invoiceData.vendorTelephone}
+                  buyerName={invoiceData.buyerName}
+                  buyerTelephone={invoiceData.buyerTelephone}
+                  billTo={invoiceData.billTo}
+                  shipTo={invoiceData.shipTo}
+                  incotermLocation={invoiceData.incotermLocation}
+                  termsOfPayment={invoiceData.termsOfPayment}
+                  taxId={invoiceData.taxId}
+                  totalNetValue={invoiceData.totalNetValue}
+                  additionalInformation={invoiceData.additionalInformation}
+                  customerContact={invoiceData.customerContact}
+                  customerProjRef={invoiceData.customerProjRef}
+                  deliveryDate={invoiceData.deliveryDate}
+                  goodsMarked={invoiceData.goodsMarked}
+                  onFieldChange={(field, value) => {
+                    setInvoiceData(prev => ({
+                      ...prev,
+                      [field]: value,
+                      invoiceType: 'purchase_order', // Always set invoiceType for PO
+                    }));
+                  }}
+                  onSave={() => {
+                    // Always set invoiceType before saving
+                    handleSave({ ...invoiceData, invoiceType: 'purchase_order' });
+                  }}
+                  isPurchaseOrder={true}
+                  itemsOrdered={invoiceData.itemsOrdered}
+                  items={invoiceData.items}
+                />
+                {/* InvoiceForm removed for purchase orders */}
+              </>
+            ) : (
+              <>
+                <InvoiceSummary
+                  type={invoiceType}
+                  poNumber={invoiceData.poNumber || invoiceData.purchaseOrderNo || invoiceData.invoiceNumber}
+                  invoiceDate={invoiceData.invoiceDate || invoiceData.purchaseOrderDate}
+                  currency={invoiceData.currency}
+                  subtotal={invoiceData.subtotal}
+                  taxes={invoiceData.taxes}
+                  totalAmount={invoiceData.totalAmount}
+                  seller={invoiceData.seller}
+                  buyer={invoiceData.buyer}
+                  consignee={invoiceData.consignee}
+                  shippingMethod={invoiceData.shippingMethod}
+                  incoterm={invoiceData.incoterm}
+                  portOfDischarge={invoiceData.portOfDischarge}
+                  deliveryLocation={invoiceData.deliveryLocation}
+                  notifyParty={invoiceData.notifyParty}
+                  paymentTerms={invoiceData.paymentTerms}
+                  bankAccountHolder={invoiceData.bankAccountHolder}
+                  bankName={invoiceData.bankName}
+                  bankAccountNumber={invoiceData.bankAccountNumber}
+                  bankSwiftCode={invoiceData.bankSwiftCode}
+                  bankIfscCode={invoiceData.bankIfscCode}
+                  totalItems={(invoiceData.itemsPurchased && invoiceData.itemsPurchased.length) || (invoiceData.itemsOrdered && invoiceData.itemsOrdered.length) || 0}
+                  totalQuantity={((invoiceData.itemsPurchased && invoiceData.itemsPurchased.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0)) || (invoiceData.itemsOrdered && invoiceData.itemsOrdered.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0)) || 0)}
+                  totalWeight={((invoiceData.itemsPurchased && invoiceData.itemsPurchased.reduce((sum, item) => sum + (Number(item.totalWeight) || 0), 0)) || (invoiceData.itemsOrdered && invoiceData.itemsOrdered.reduce((sum, item) => sum + (Number(item.totalWeight) || 0), 0)) || 0)}
+                  totalPrice={((invoiceData.itemsPurchased && invoiceData.itemsPurchased.reduce((sum, item) => sum + (Number(item.totalPrice) || 0), 0)) || (invoiceData.itemsOrdered && invoiceData.itemsOrdered.reduce((sum, item) => sum + (Number(item.totalPrice) || 0), 0)) || 0)}
+                  vendor={invoiceData.vendor}
+                  vendorName={invoiceData.vendorName}
+                  vendorContact={invoiceData.vendorContact}
+                  vendorNo={invoiceData.vendorNo}
+                  vendorEmail={invoiceData.vendorEmail}
+                  vendorTelephone={invoiceData.vendorTelephone}
+                  buyerName={invoiceData.buyerName}
+                  buyerTelephone={invoiceData.buyerTelephone}
+                  billTo={invoiceData.billTo}
+                  shipTo={invoiceData.shipTo}
+                  incotermLocation={invoiceData.incotermLocation}
+                  termsOfPayment={invoiceData.termsOfPayment}
+                  taxId={invoiceData.taxId}
+                  totalNetValue={invoiceData.totalNetValue}
+                  additionalInformation={invoiceData.additionalInformation}
+                  customerContact={invoiceData.customerContact}
+                  customerProjRef={invoiceData.customerProjRef}
+                  deliveryDate={invoiceData.deliveryDate}
+                  goodsMarked={invoiceData.goodsMarked}
+                  onFieldChange={handleSummaryFieldChange}
+                />
+                <InvoiceForm
+                  invoiceData={invoiceData}
+                  onSave={handleSave}
+                  invoiceType={invoiceType}
+                />
+              </>
+            )
           )}
-        </button>
-      </div>
-      {invoiceData && (
-        <InvoiceForm
-          invoiceData={invoiceData}
-          onSave={handleSave}
-          invoiceType={invoiceType}
-        />
-      )}
         </>
       )}
       {activeTab === 'stock' && <StockMaster />}

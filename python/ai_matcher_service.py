@@ -190,9 +190,12 @@ def match_po_items(req: MatchRequest):
             top_indices = sims.argsort()[-req.top_n:][::-1]
             matches = [{"item": clean_item(po_items[i]), "score": float(sims[i]), "method": "vector"} for i in top_indices]
             method = "vector"
+            # Fallback to fuzzy if top vector match is below threshold
+            if matches[0]["score"] < 0.6:
+                raise Exception("Vector match too low, falling back to fuzzy")
         except Exception as e:
-            print("Vector search failed, falling back to fuzzy:", e)
-            choices = {text: item for text, item in zip(po_item_texts, po_items)}
+            print("Vector search failed or too low, falling back to fuzzy:", e)
+            choices = {get_po_item_text(item): item for item in po_items}
             top_matches = fuzzy_process.extract(desc, choices.keys(), limit=req.top_n)
             matches = [{"item": clean_item(choices[text]), "score": score / 100.0, "method": "fuzzy"} for text, score in top_matches]
             method = "fuzzy"

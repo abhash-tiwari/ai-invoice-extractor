@@ -1,0 +1,312 @@
+.invoice-summary-container {
+  max-width: 1400px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 16px 8px;
+}
+
+.row {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.box {
+  background: #fff;
+  border: 2px solid #bfc9d1 !important;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+  padding: 24px 28px 20px 28px;
+  margin-bottom: 24px;
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+.box:hover {
+  box-shadow: 0 6px 24px rgba(0,0,0,0.13);
+  transform: translateY(-2px) scale(1.015);
+  border-color: #d1d5db;
+}
+
+.po-details, .financial-details {
+  max-width: 50%;
+}
+
+.party-details {
+  min-width: 180px;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.party-line {
+  margin-top: 32px;
+  /* border-bottom: 4px solid #111; */
+  width: 100%;
+  height: 24px; /* just spacing, no line */
+  background: none;
+}
+
+.details-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px 16px;
+  margin-top: 8px;
+}
+
+.details-grid > div {
+  display: flex;
+  flex-direction: column;
+  font-size: 15px;
+}
+
+.details-grid span {
+  font-weight: 500;
+  margin-bottom: 2px;
+}
+
+.line {
+  border-bottom: 2px solid #111;
+  min-width: 60px;
+  margin-top: 2px;
+  height: 10px;
+}
+
+.bank-details .bank-grid {
+  grid-template-columns: repeat(5, 1fr);
+}
+
+.summary-row {
+  gap: 12px;
+}
+.summary-box {
+  flex: 1;
+  background: #fafafa;
+  border: 2px solid #bfc9d1 !important;
+  border-radius: 10px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+  padding: 18px 12px 12px 12px;
+  text-align: center;
+  font-weight: bold;
+  font-size: 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transition: box-shadow 0.2s, transform 0.2s, border-color 0.2s;
+}
+.summary-box:hover {
+  box-shadow: 0 6px 24px rgba(0,0,0,0.13);
+  transform: translateY(-2px) scale(1.015);
+  border-color: #d1d5db;
+}
+.summary-box .line {
+  margin: 8px 0 0 0;
+  border-bottom: 2.5px solid #d1d5db;
+  width: 80%;
+  height: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.summary-box .summary-value {
+  font-size: 18px;
+  font-weight: bold;
+  color: #222;
+  position: relative;
+  top: -8px;
+  background: #fafafa;
+  padding: 0 8px;
+}
+
+h2 {
+  font-size: 1.1rem;
+  font-weight: bold;
+  margin: 0 0 8px 0;
+  letter-spacing: 0.5px;
+}
+
+.po-items-table-container {
+  width: 100%;
+  overflow-x: auto;
+  margin-top: 32px;
+  margin-bottom: 32px;
+}
+.po-items-table {
+  min-width: 1200px;
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0 2px;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+}
+.po-items-table th {
+  background: #f5f7fa;
+  font-weight: 600;
+  padding: 8px 66px;
+  border-bottom: 2px solid #e0e0e0;
+  text-align: right;
+  font-size: 15px;
+  white-space: nowrap;
+}
+.po-items-table td {
+  padding: 6px 16px;
+  border-bottom: 1px solid #ececec;
+  vertical-align: middle;
+  background: #fff;
+  /* Add a little space below each row */
+}
+.po-items-table tbody tr {
+  /* margin-bottom: 8px; */
+}
+.po-items-table tbody tr:nth-child(even) td {
+  background: #f8fafc;
+}
+.po-items-table tbody tr:hover td {
+  background: #eaf3fb;
+}
+.po-items-table input[type="text"] {
+  width: 100%;
+  padding: 4px 6px;
+  border: 1px solid #d0d7de;
+  border-radius: 4px;
+  font-size: 14px;
+  background: #f9f9fb;
+  transition: border 0.2s;
+}
+.po-items-table input[type="text"]:focus {
+  border: 1.5px solid #007bff;
+  outline: none;
+  background: #fff;
+}
+.po-items-table td:last-child,
+.po-items-table th:last-child {
+  text-align: center;
+}
+.po-items-table td button {
+  background: #e74c3c;
+  color: #fff;
+  border: none;
+  border-radius: 3px;
+  padding: 3px 8px;
+  cursor: pointer;
+  font-size: 13px;
+  transition: background 0.2s;
+}
+.po-items-table td button:hover {
+  background: #c0392b;
+}
+.po-items-table td .match-status-cell {
+  font-size: 12px;
+  background: #f8f9fa;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  padding: 4px 6px;
+  min-width: 120px;
+  max-width: 180px;
+  word-break: break-word;
+  color: #333;
+}
+.po-items-table-gap {
+  /* border-right: 2.5px solid #bfc9d1 !important; */
+  padding-right: 12px !important;
+}
+@media (max-width: 900px) {
+  .po-items-table {
+    min-width: 900px;
+  }
+}
+
+@media (max-width: 700px) {
+  .row {
+    flex-direction: column;
+    gap: 10px;
+  }
+  .box, .summary-box {
+    min-width: 0;
+    width: 100%;
+  }
+  .details-grid, .bank-details .bank-grid {
+    grid-template-columns: 1fr;
+  }
+} 
+.details-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 16px;
+  margin-top: 8px;
+}
+.summary-input {
+  width: 100%;
+  padding: 4px 6px;
+  border: 1px solid #d0d7de;
+  border-radius: 4px;
+  font-size: 14px;
+  background: #f9f9fb;
+  transition: border 0.2s;
+}
+.summary-input:focus {
+  border: 1.5px solid #007bff;
+  outline: none;
+  background: #fff;
+}
+.summary-input textarea,
+textarea.summary-input {
+  min-height: 60px;
+  max-height: 120px;
+  resize: vertical;
+}
+.box {
+  background: #fff;
+  border: 2px solid #222;
+  border-radius: 8px;
+  padding: 16px;
+  flex: 1;
+  min-width: 220px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+}
+.form-group label {
+  font-size: 1rem;
+  font-weight: 400;
+  margin-bottom: 2px;
+  display: block;
+  color: #222;
+}
+.invoice-form h2, .box h3 {
+  font-size: 1.1rem;
+  font-weight: bold;
+  margin: 0 0 8px 0;
+  letter-spacing: 0.5px;
+  color: #222;
+} 
+.po-row-already-exists td {
+  background: #ffeaea !important;
+}
+.po-row-unmatched td {
+  background: #eaf4ff !important;
+}
+.po-row-suggested td {
+  background: #fffbe6 !important;
+} 
+.summary-input, .summary-textarea {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1.5px solid #bfc9d1;
+  border-radius: 6px;
+  background: #f9f9fb;
+  font-size: 15px;
+  transition: border 0.2s, box-shadow 0.2s;
+  box-sizing: border-box;
+}
+.summary-input:focus, .summary-textarea:focus {
+  border: 1.5px solid #007bff;
+  background: #fff;
+  outline: none;
+  box-shadow: 0 2px 8px rgba(0,123,255,0.07);
+}
+.summary-textarea {
+  min-height: 48px;
+  max-height: 120px;
+  resize: vertical;
+} 
