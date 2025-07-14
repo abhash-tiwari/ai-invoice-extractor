@@ -52,20 +52,27 @@ def get_po_item_text(item):
 
 def load_master_items_and_embeddings():
     global master_items, item_texts, item_embeddings
+    # Print a message to indicate loading has started
     print("Loading master items from MongoDB...")
+    # Loading all stock master items from the MongoDB collection into a list
     master_items = list(collection.find({}))
+    # For each item, we are creating a string (usually itemCode + description) for embedding and matching
     item_texts = [get_item_text(item) for item in master_items]
-    # Generate embeddings for items missing them
+    # Finding indices of items that do not have an embedding field
     missing = [i for i, item in enumerate(master_items) if not item.get(EMBEDDING_FIELD)]
+    # If there are items missing embeddings, generating and saving them
     if missing:
         print(f"Generating embeddings for {len(missing)} items missing embeddings...")
+        # Preparing the text for the missing items
         texts_to_embed = [item_texts[i] for i in missing]
+        # Generating the embeddings using the sentence-transformer model
         new_embeddings = model.encode(texts_to_embed, show_progress_bar=True)
+        # For each missing item, save the embedding back to MongoDB and update in-memory list
         for idx, emb in zip(missing, new_embeddings):
             collection.update_one({"_id": master_items[idx]["_id"]}, {"$set": {EMBEDDING_FIELD: emb.tolist()}})
             master_items[idx][EMBEDDING_FIELD] = emb.tolist()
-    # Load all embeddings into memory
     item_embeddings = [item.get(EMBEDDING_FIELD) for item in master_items]
+    # Printing a summary of how many items were loaded and now they have embeddings
     print(f"Loaded {len(master_items)} master items with embeddings.")
 
 # NEW: Load PO items and embeddings

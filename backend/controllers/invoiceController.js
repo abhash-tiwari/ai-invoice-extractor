@@ -200,6 +200,7 @@ ${extractedText}
 
 ${expectedItemCount ? `There are exactly ${expectedItemCount} items in the table. Extract exactly ${expectedItemCount} items. Ignore any row that contains the word 'TOTAL' or is a summary row. If you extract more than ${expectedItemCount}, remove the extras from the end.` : ''}
 
+IMPORTANT: There must be more than 1 page so extract every item and the details properly.
 Each item in itemsOrdered MUST have these EXACT field names:
 {
   "position": "item position number do not give serial number in position",
@@ -238,6 +239,8 @@ ${extractedText}
 - seller
 - buyer
 - consignee
+- exporter
+- transporter
 - address
 - shippingMethod
 - itemsPurchased (make sure to extract ALL items from the invoice, no matter how many there are, do not limit yourself)
@@ -246,6 +249,11 @@ ${extractedText}
 - totalAmount (include currency if mentioned)
 - incoterm
 - portOfDischarge
+- portOfLoading
+- GSTNo
+- PANNo
+- billTo
+- shipTo
 - notifyParty
 - bankDetails (extract as an object with fields: accountHolder, bankName, accountNumber, ifscCode, swiftCode)
 - deliveryLocation
@@ -289,7 +297,7 @@ Each item in itemsPurchased MUST have these EXACT field names:
   "quantityUnit": "unit of quantity (e.g., bags, pieces, kg, grams, etc.)",
   "pricePerUnit": "look for price per unit/ rate per p/c with currency if mentioned (e.g., '10 EUR' or '10 USD')",
   "totalWeight": "total weight if mentioned",
-  "totalPrice": "look for total price/amount with currency if mentioned"
+  "totalPrice": "look for total price/amount with currency if mentioned, always look for last column value of price mentioned that is the total price/amount"
 }
 
 IMPORTANT: For every item, always include the "totalWeight" field, even if it is not found. If not found, set it to null or an empty string.
@@ -543,12 +551,19 @@ ${extractedText}
       invoiceNumber: parsedData.invoiceNumber || null,
       seller: parsedData.seller ? JSON.stringify(parsedData.seller) : null,
       buyer: parsedData.buyer ? JSON.stringify(parsedData.buyer) : null,
+      exporter: parsedData.exporter ? JSON.stringify(parsedData.exporter) : null,
+      transporter: parsedData.transporter ? JSON.stringify(parsedData.transporter) : null,
       consignee: parsedData.consignee ? JSON.stringify(parsedData.consignee) : null,
       address: parsedData.address ? JSON.stringify(parsedData.address) : null,
       notifyParty: parsedData.notifyParty ? JSON.stringify(parsedData.notifyParty) : null,
+      shipTo: parsedData.shipTo || null,
+      billTo: parsedData.billTo || null,
+      GSTNo: parsedData.GSTNo || null,
+      PANNo: parsedData.PANNo || null,
       shippingMethod: parsedData.shippingMethod || null,
       incoterm: parsedData.incoterm || null,
       portOfDischarge: parsedData.portOfDischarge || null,
+      portOfLoading: parsedData.portOfLoading || null,
       bankAccountHolder: parsedData.bankDetails?.accountHolder || null,
       bankName: parsedData.bankDetails?.bankName || null,
       bankAccountNumber: parsedData.bankDetails?.accountNumber || null,

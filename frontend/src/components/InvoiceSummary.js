@@ -1,4 +1,3 @@
-import React from 'react';
 import './InvoiceSummary.css';
 import PurchaseOrderItemsTable from './PurchaseOrderItemsTable';
 
@@ -122,8 +121,8 @@ const InvoiceSummary = ({
           <div className="box addresses-details">
             <h2>Addresses</h2>
             <div className="details-grid">
-              {billTo && <div><span>Bill To</span>{renderInput('billTo', billTo, onFieldChange, 'Bill To', true)}</div>}
-              {shipTo && <div><span>Ship To</span>{renderInput('shipTo', shipTo, onFieldChange, 'Ship To', true)}</div>}
+              {billTo && <div><span>Bill To</span>{renderInput('billTo', billTo, onFieldChange, '', true)}</div>}
+              {shipTo && <div><span>Ship To</span>{renderInput('shipTo', shipTo, onFieldChange, '', true)}</div>}
             </div>
           </div>
         </div>
@@ -148,9 +147,9 @@ const InvoiceSummary = ({
             <div className="box party-details">
               <h2>Vendor</h2>
               <div className="party-subfields">
-                <div><strong>Name:</strong> {renderInput('vendorName', vendorName, onFieldChange, 'Vendor Name')}</div>
-                {vendorNo && <div><strong>No:</strong> {renderInput('vendorNo', vendorNo, onFieldChange, 'Vendor No')}</div>}
-                {vendorContact && <div><strong>Contact:</strong> {renderInput('vendorContact', vendorContact, onFieldChange, 'Vendor Contact')}</div>}
+                <div><strong>Name:</strong> {renderInput('vendorName', vendor, onFieldChange,)}</div>
+                {vendorNo && <div><strong>No:</strong> {renderInput('vendorNo', vendorNo, onFieldChange,)}</div>}
+                {vendorContact && <div><strong>Contact:</strong> {renderInput('vendorContact', vendorContact, onFieldChange,)}</div>}
                 {vendorEmail && <div><strong>Email:</strong> {renderInput('vendorEmail', vendorEmail, onFieldChange, 'Vendor Email')}</div>}
                 {vendorTelephone && <div><strong>Telephone:</strong> {renderInput('vendorTelephone', vendorTelephone, onFieldChange, 'Vendor Telephone')}</div>}
               </div>
@@ -208,10 +207,10 @@ const InvoiceSummary = ({
         </div>
       </div>
       <div className="row summary-row">
-        <div className="summary-box">Total Items<div className="line">{totalItems || ''}</div></div>
-        <div className="summary-box">Total Quantity<div className="line">{totalQuantity || ''}</div></div>
-        <div className="summary-box">Total Weight<div className="line">{totalWeight || ''}</div></div>
-        <div className="summary-box">Total Price<div className="line">{totalPrice || ''}</div></div>
+        <div className="summary-box">Total Items<div className="linee">{totalItems || ''}</div></div>
+        <div className="summary-box">Total Quantity<div className="linee">{totalQuantity || ''}</div></div>
+        <div className="summary-box">Total Weight<div className="linee">{totalWeight || ''}</div></div>
+        <div className="summary-box">Total Price<div className="linee">{totalNetValue || ''}</div></div>
       </div>
       {isPurchaseOrder && (
         <>

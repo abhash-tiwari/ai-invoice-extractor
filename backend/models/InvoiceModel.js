@@ -21,6 +21,14 @@ const invoiceSchema = new mongoose.Schema({
   deliveryLocation: { type: String },
   invoiceDate: { type: Date },
   paymentTerms: { type: String },
+
+  exporter: { type: String },
+  transporter: { type: String },
+  shipTo: { type: String },
+  billTo: { type: String },
+  GSTNo: { type: String },
+  PANNo: { type: String },
+
   itemsPurchased: { type: Array },
   subtotal: { type: String },
   taxes: { type: String },

@@ -88,7 +88,7 @@ const PurchaseOrderItemsTable = ({ items, onItemsChange }) => {
                 className={
                   item.matchStatus === 'already_exists' ? 'po-row-already-exists' :
                   item.matchStatus === 'unmatched' ? 'po-row-unmatched' :
-                  item.matchStatus === 'suggested' ? 'po-row-suggested' : ''
+                  item.matchStatus === 'matched' ? 'po-row-suggested' : ''
                 }
               >
                 {COLUMNS.map((col, idx) => (

@@ -7,6 +7,9 @@ const PurchaseOrderSchema = new mongoose.Schema({
   vendorNo: String,
   currency: String,
   customerContact: mongoose.Schema.Types.Mixed,
+
+
+
   buyerName: String,
   buyerEmail: String,
   buyerTelephone: String,
