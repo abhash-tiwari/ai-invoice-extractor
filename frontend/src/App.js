@@ -229,6 +229,12 @@ function App() {
                   customerProjRef={invoiceData.customerProjRef}
                   deliveryDate={invoiceData.deliveryDate}
                   goodsMarked={invoiceData.goodsMarked}
+                  address={invoiceData.address}
+                  GSTNo={invoiceData.GSTNo}
+                  PANNo={invoiceData.PANNo}
+                  countryOfOrigin={invoiceData.countryOfOrigin}
+                  countryOfDestination={invoiceData.countryOfDestination}
+                  bankDetails={invoiceData.bankDetails}
                   onFieldChange={(field, value) => {
                     setInvoiceData(prev => ({
                       ...prev,

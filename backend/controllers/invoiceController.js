@@ -166,10 +166,26 @@ ${extractedText}
     } else if (invoiceType === 'purchase_order') {
       prompt = `Extract the following fields from the purchase order and return JSON without any explanation:
 - vendor
+- poNumber
+- invoiceNumber
+- invoiceDate
 - purchaseOrderNo
 - purchaseOrderDate
 - vendorNo
 - currency
+- seller
+- buyer
+- consignee
+- exporter
+- transporter
+- address
+- shippingMethod
+- portOfDischarge
+- portOfLoading
+- GSTNo
+- PANNo
+- vesselFlightNo
+- containerNo
 - customerContact
 - buyerName
 - buyerEmail
@@ -188,6 +204,13 @@ ${extractedText}
 - vendorEmail
 - vendorTelephone
 - vendorName
+- countryOfDestination
+- countryOfOrigin
+- authorisedSignatory
+- totalNetWeight
+- totalGrossWeight
+- bankDetails (extract as an object with fields: accountHolder, bankName, accountNumber, ifscCode, swiftCode)
+- totalQty
 - taxId
 - totalNetValue
 - additionalInformation
@@ -205,7 +228,7 @@ Each item in itemsOrdered MUST have these EXACT field names:
 {
   "position": "item position number do not give serial number in position",
   "lineNo": "include line number in which column from top the item has placed do not give po line no.",
-  "itemCode": "item code is important always include",
+  "itemCode": "item code is important always include. In case you cant find it then paste hsn/sac code in itemcode",
   "name": "name or description of the item",
   "description": "item description",
   "quantity": "quantity as a number",
@@ -226,6 +249,21 @@ IMPORTANT: For each item, extract all fields as they appear in the table or docu
 
 IMPORTANT: Purchase order tables may have different column headers for the same data. For each item, map the table columns to the following standard field names, even if the column header is different:
 - "item code", "hsn code", "material number", "hs code" → itemCode.
+
+For bankDetails, look for patterns like:
+- Bank name followed by account details
+- SWIFT code, account number, and IFSC code
+- Account holder name (often found near "BENEFICIARY" or "ACCOUNT HOLDER")
+- Look for these patterns in the entire document, not just specific sections
+
+The bankDetails object should be structured like this:
+{
+  "accountHolder": "The account holder name from the invoice",
+  "bankName": "The bank name from the invoice",
+  "accountNumber": "The account number from the invoice",
+  "ifscCode": "The IFSC code from the invoice",
+  "swiftCode": "The SWIFT code from the invoice"
+}
 
 Give pure JSON only, no backticks, no markdown.
 
